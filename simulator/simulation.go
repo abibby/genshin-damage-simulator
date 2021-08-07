@@ -1,55 +1,69 @@
 package simulator
 
-import "math/rand"
+import (
+	"math/rand"
+	"os"
+
+	"github.com/davecgh/go-spew/spew"
+)
 
 type EventType string
 
 const (
-	EventNormalAttack   = "normal-attack"
-	EventChargeAttack   = "charge-attack"
-	EventElementalSkill = "elemental-skill"
-	EventElementalBurst = "elemental-burst"
+	EventBeforeNormalAttack = "before-normal-attack"
+	EventAfterNormalAttack  = "after-normal-attack"
+
+	EventBeforeChargeAttack = "before-charge-attack"
+	EventAfterChargeAttack  = "after-charge-attack"
+
+	EventBeforeElementalSkill = "before-elemental-skill"
+	EventAfterElementalSkill  = "after-elemental-skill"
+
+	EventBeforeElementalBurst = "before-elemental-burst"
+	EventAfterElementalBurst  = "after-elemental-burst"
 )
 
-type Event struct {
-	Type EventType
-}
-
-type EventCallback func(e *Event)
-
-type EventTarget struct {
-	listeners map[EventType][]EventCallback
-}
-
-func (l *EventTarget) AddEventListener(eventType EventType, callback EventCallback) {
-	listeners, ok := l.listeners[eventType]
-	if !ok {
-		listeners = []EventCallback{}
-	}
-
-	listeners = append(listeners, callback)
-
-	l.listeners[eventType] = listeners
-}
-func (l *EventTarget) AddEventListeners(eventTypes []EventType, callback EventCallback) {
-	for _, eventType := range eventTypes {
-		l.AddEventListener(eventType, callback)
-	}
-}
-func (l *EventTarget) DispatchEvent(e *Event) {
-	stack, ok := l.listeners[e.Type]
-	if !ok {
-		return
-	}
-
-	for _, cb := range stack {
-		cb(e)
-	}
-}
+const FPS = 60
 
 type Simulation struct {
-	EventTarget
+	*EventTarget
 
 	Frame  int
 	Random rand.Rand
+}
+
+func NewSimulation() *Simulation {
+	return &Simulation{
+		EventTarget: NewEventTarget(),
+	}
+}
+
+func SimulateCharacter(s *Simulation, c Character, totalFrames int) {
+	damages := []Damage{}
+	abilities := c.Abilities()
+	for s.Frame < totalFrames {
+		for _, ability := range abilities {
+			if !ability.CanUse(s, c) {
+				continue
+			}
+			damages = append(damages, ability.Damage(s, c))
+			s.Frame += ability.FrameCount(s, c)
+			break
+		}
+	}
+
+	spew.Dump(TotalDamage(damages))
+	os.Exit(1)
+}
+
+func TotalDamage(damages []Damage) float32 {
+	totalDamage := float32(0)
+
+	for _, d := range damages {
+		for _, instance := range d {
+			totalDamage += instance.Damage
+		}
+	}
+
+	return totalDamage
 }

@@ -14,44 +14,51 @@ func (k *Klee) Name() string {
 
 func (k *Klee) Initialize(s *Simulation) {
 	s.AddEventListeners(
-		[]EventType{EventNormalAttack, EventElementalSkill},
+		[]EventType{EventAfterNormalAttack, EventAfterElementalSkill},
 		func(e *Event) {
 			k.explosiveSpark++
 		},
 	)
-	s.AddEventListener(EventChargeAttack, func(e *Event) {
+	s.AddEventListener(EventBeforeChargeAttack, func(e *Event) {
+		if k.explosiveSpark >= 2 {
+			k.explosiveSpark = 0
+			k.AddBuff("pounding-supprise", Stats{
+				DamagePercent: 50,
+			})
+		}
+	})
+	s.AddEventListener(EventAfterChargeAttack, func(e *Event) {
 		k.ClearBuff("pounding-supprise")
 	})
 }
 
-type KaboomChargeAttack struct{}
-
-var _ Ability = &KaboomChargeAttack{}
-
-func (k *KaboomChargeAttack) Name() string                              { return "c" }
-func (k *KaboomChargeAttack) CanUse(s *Simulation, c Character) bool    { return c.Stamina() >= 50 }
-func (k *KaboomChargeAttack) FrameCount(s *Simulation, c Character) int { return 10 }
-func (k *KaboomChargeAttack) Damage(s *Simulation, c Character) Damage {
-	c.UseStamina(50)
-	if c.(*Klee).explosiveSpark >= 2 {
-		c.AddBuff("pounding-supprise", Stats{
-			DamagePercent: 50,
-		})
-	}
-	return Damage{DamageInstance{
-		Frame:   0,
-		Damage:  283,
-		Element: Pyro,
-		Gauge:   1,
-	}}
-}
-
 func (k *Klee) Abilities() []Ability {
-	abilities := []Ability{}
-	abilities = append(abilities, NewNormalAttacks(
-		10, 130,
-		10, 112,
-		10, 162,
-	)...)
-	return abilities
+	return []Ability{
+		NewNormalAttack(1, 10, PyroDamage(130, 1)),
+		NewNormalAttack(2, 10, PyroDamage(112, 1)),
+		NewNormalAttack(3, 10, PyroDamage(162, 1)),
+
+		NewChargeAttack(20, 50, PyroDamage(283, 1)),
+
+		NewElementalSkill(10, 15*FPS, 2, Damage{
+			DamageInstance{
+				Frame:   0,
+				Damage:  95.2,
+				Element: Pyro,
+				Gauge:   0.5,
+			},
+			DamageInstance{
+				Frame:   10,
+				Damage:  95.2,
+				Element: Pyro,
+				Gauge:   0.5,
+			},
+			DamageInstance{
+				Frame:   20,
+				Damage:  95.2,
+				Element: Pyro,
+				Gauge:   0.5,
+			},
+		}),
+	}
 }

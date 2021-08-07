@@ -10,37 +10,23 @@ type Ability interface {
 }
 
 type NormalAttack struct {
-	name       string
-	frameCount int
-	damage     Damage
+	attackNumber int
+	frameCount   int
+	damage       Damage
 }
 
 var _ Ability = &NormalAttack{}
 
-func NewNormalAttack(name string, frameCount, damage int) Ability {
+func NewNormalAttack(attackNumber, frameCount int, damage Damage) Ability {
 	return &NormalAttack{
-		name:       name,
-		frameCount: frameCount,
-		damage: Damage{DamageInstance{
-			Frame:   0,
-			Damage:  float32(damage),
-			Element: Physical,
-			Gauge:   0,
-		}},
+		attackNumber: attackNumber,
+		frameCount:   frameCount,
+		damage:       damage,
 	}
 }
-func NewNormalAttacks(v ...int) []Ability {
-	if len(v)%2 != 0 {
-		panic("len(v) must be even")
-	}
-	a := make([]Ability, 0, len(v)/2)
-	for i := 0; i < len(v); i += 2 {
-		a = append(a, NewNormalAttack(fmt.Sprintf("n%d", i/2), v[i], v[i+1]))
-	}
-	return a
-}
+
 func (n *NormalAttack) Name() string {
-	return n.name
+	return fmt.Sprintf("n%d", n.attackNumber)
 }
 func (n *NormalAttack) FrameCount(s *Simulation, c Character) int {
 	return n.frameCount
@@ -52,35 +38,63 @@ func (n *NormalAttack) Damage(s *Simulation, c Character) Damage {
 	return n.damage
 }
 
-// func NewAbility(name string, canUse func(c *Character) bool, damage func(c *Character) int) *Ability {
-// 	return &Ability{
-// 		Name:   name,
-// 		CanUse: canUse,
-// 		Damage: damage,
-// 	}
-// }
+type ChargeAttack struct {
+	frameCount  int
+	staminaCost int
+	damage      Damage
+}
 
-// func NewBasicAttack(name string, damage int) *Ability {
-// 	return &Ability{
-// 		Name: name,
-// 		CanUse: func(c *Character) bool {
-// 			return true
-// 		},
-// 		Damage: func(c *Character) int {
-// 			return damage
-// 		},
-// 	}
-// }
+var _ Ability = &ChargeAttack{}
 
-// func NewChargeAttack(name string, damage, stamina int) *Ability {
-// 	return &Ability{
-// 		Name: name,
-// 		CanUse: func(c *Character) bool {
-// 			return c.stamina >= stamina
-// 		},
-// 		Damage: func(c *Character) int {
-// 			c.stamina -= stamina
-// 			return damage
-// 		},
-// 	}
-// }
+func NewChargeAttack(frameCount, staminaCost int, damage Damage) Ability {
+	return &ChargeAttack{
+		frameCount:  frameCount,
+		staminaCost: staminaCost,
+		damage:      damage,
+	}
+}
+func (c *ChargeAttack) Name() string {
+	return "c"
+}
+func (c *ChargeAttack) FrameCount(s *Simulation, character Character) int {
+	return c.frameCount
+}
+func (c *ChargeAttack) CanUse(s *Simulation, character Character) bool {
+	return character.Stamina() >= float64(c.staminaCost)
+}
+func (c *ChargeAttack) Damage(s *Simulation, character Character) Damage {
+	character.UseStamina(float64(c.staminaCost))
+	return c.damage
+}
+
+type ElementalSkill struct {
+	frameCount int
+	cooldown   int // cooldown in frames
+	charges    int
+	damage     Damage
+}
+
+var _ Ability = &ElementalSkill{}
+
+func NewElementalSkill(frameCount, cooldown, charges int, damage Damage) Ability {
+	return &ElementalSkill{
+		frameCount: frameCount,
+		cooldown:   cooldown,
+		charges:    charges,
+		damage:     damage,
+	}
+}
+func (e *ElementalSkill) Name() string {
+	return "e"
+}
+func (e *ElementalSkill) FrameCount(s *Simulation, character Character) int {
+	return e.frameCount
+}
+func (e *ElementalSkill) CanUse(s *Simulation, character Character) bool {
+	// TODO: implement multiple charges
+	return character.OnCooldown(e.Name(), s.Frame)
+}
+func (e *ElementalSkill) Damage(s *Simulation, character Character) Damage {
+	character.CastCooldown(e.Name(), e.cooldown, s.Frame)
+	return e.damage
+}
