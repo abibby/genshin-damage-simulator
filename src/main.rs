@@ -14,6 +14,8 @@ enum Element {
 
 type Frame = i32;
 
+const Second: Frame = 2;
+
 #[derive(Debug)]
 struct Character<'a> {
     name: &'a str,
@@ -23,14 +25,10 @@ struct Character<'a> {
 #[derive(Debug)]
 struct Ability<'a> {
     name: &'a str,
-    damage: Damage,
+    damage: Vec<DamageInstance>,
     cast_time: Frame,
     stop_on_switch: bool,
-}
-
-#[derive(Debug)]
-struct Damage {
-    instances: Vec<DamageInstance>,
+    icd: Frame,
 }
 
 #[derive(Debug)]
@@ -50,69 +48,66 @@ fn main() {
         "n1",
         Ability {
             name: "n1",
-            damage: Damage {
-                instances: vec![DamageInstance {
-                    frame: 0,
-                    damage: 130.0,
-                    element: Element::Pyro,
-                }],
-            },
+            damage: vec![DamageInstance {
+                frame: 0,
+                damage: 130.0,
+                element: Element::Pyro,
+            }],
             cast_time: 36,
             stop_on_switch: false,
+            icd: 2 * Second,
         },
     );
     klee.abilities.insert(
         "n3",
         Ability {
             name: "n3",
-            damage: Damage {
-                instances: vec![
-                    DamageInstance {
-                        frame: 0,
-                        damage: 130.0,
-                        element: Element::Pyro,
-                    },
-                    DamageInstance {
-                        frame: 36,
-                        damage: 112.0,
-                        element: Element::Pyro,
-                    },
-                    DamageInstance {
-                        frame: 70,
-                        damage: 162.0,
-                        element: Element::Pyro,
-                    },
-                ],
-            },
+            damage: vec![
+                DamageInstance {
+                    frame: 0,
+                    damage: 130.0,
+                    element: Element::Pyro,
+                },
+                DamageInstance {
+                    frame: 36,
+                    damage: 112.0,
+                    element: Element::Pyro,
+                },
+                DamageInstance {
+                    frame: 70,
+                    damage: 162.0,
+                    element: Element::Pyro,
+                },
+            ],
             cast_time: 148,
             stop_on_switch: false,
+            icd: 2 * Second,
         },
     );
     klee.abilities.insert(
         "e",
         Ability {
             name: "e",
-            damage: Damage {
-                instances: vec![
-                    DamageInstance {
-                        frame: 0,
-                        damage: 171.0,
-                        element: Element::Pyro,
-                    },
-                    DamageInstance {
-                        frame: 30,
-                        damage: 171.0,
-                        element: Element::Pyro,
-                    },
-                    DamageInstance {
-                        frame: 60,
-                        damage: 171.0,
-                        element: Element::Pyro,
-                    },
-                ],
-            },
+            damage: vec![
+                DamageInstance {
+                    frame: 0,
+                    damage: 171.0,
+                    element: Element::Pyro,
+                },
+                DamageInstance {
+                    frame: 30,
+                    damage: 171.0,
+                    element: Element::Pyro,
+                },
+                DamageInstance {
+                    frame: 60,
+                    damage: 171.0,
+                    element: Element::Pyro,
+                },
+            ],
             cast_time: 20,
             stop_on_switch: false,
+            icd: 2 * Second,
         },
     );
 
@@ -121,27 +116,26 @@ fn main() {
         "q",
         Ability {
             name: "q",
-            damage: Damage {
-                instances: vec![
-                    DamageInstance {
-                        frame: 0,
-                        damage: 76.8,
-                        element: Element::Pyro,
-                    },
-                    DamageInstance {
-                        frame: 0,
-                        damage: 76.8,
-                        element: Element::Pyro,
-                    },
-                    DamageInstance {
-                        frame: 0,
-                        damage: 76.8,
-                        element: Element::Pyro,
-                    },
-                ],
-            },
+            damage: vec![
+                DamageInstance {
+                    frame: 0,
+                    damage: 76.8,
+                    element: Element::Pyro,
+                },
+                DamageInstance {
+                    frame: 0,
+                    damage: 76.8,
+                    element: Element::Pyro,
+                },
+                DamageInstance {
+                    frame: 0,
+                    damage: 76.8,
+                    element: Element::Pyro,
+                },
+            ],
             cast_time: 20,
             stop_on_switch: false,
+            icd: 2 * Second,
         },
     );
     println!("Hello, world!");
