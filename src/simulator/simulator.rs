@@ -1,40 +1,55 @@
 use crate::character;
 use crate::simulator;
 
-struct Simulation {
-    damage_instances: Vec<character::DamageInstance>,
+pub struct Simulation {
+    characters: [Box<character::Character>; 4],
+    active_character_index: usize,
+    damage_queue: simulator::DamageQueue,
     total_damage: f32,
     current_frame: simulator::Frame,
 }
 
-pub fn simulate(sequence: Vec<&str>, char: character::Character, length: simulator::Frame) -> f32 {
-    let mut s = Simulation {
-        damage_instances: Vec::with_capacity(30),
-        total_damage: 0.0,
-        current_frame: 0,
-    };
-    for input in sequence {
-        let succ = match char.abilities.get(input) {
-            Some(ability) => {
-                for d in ability.damage {
-                    s.damage_instances.push(character::DamageInstance {
-                        frame: d.frame + s.current_frame,
-                        element: d.element,
-                        damage: d.damage,
-                    })
-                }
-                true
-            }
-            _ => false,
-        };
-        if !succ {
-            return -1.0;
+impl Simulation {
+    pub fn new(characters: [Box<character::Character>; 4]) -> Simulation {
+        Simulation {
+            characters: characters,
+            active_character_index: 0,
+            damage_queue: simulator::DamageQueue::new(),
+            total_damage: 0.0,
+            current_frame: 0,
         }
     }
 
-    for d in s.damage_instances {
-        s.total_damage += d.damage
+    pub fn run(&mut self, sequence: Vec<&str>) -> f32 {
+        for input in sequence {
+            match input {
+                "1" => self.active_character_index = 0,
+                "2" => self.active_character_index = 1,
+                "3" => self.active_character_index = 2,
+                "4" => self.active_character_index = 3,
+                _ => {
+                    let ability = self.characters[self.active_character_index]
+                        .abilities
+                        .get(input)
+                        .unwrap();
+                    self.damage_queue.push(self.current_frame, &ability.hits);
+                    self.current_frame += ability.cast_time;
+                }
+            }
+        }
+
+        for (_frame, instance) in self.damage_queue.queue() {
+            self.total_damage += instance.damage
+        }
+
+        self.total_damage
     }
 
-    s.total_damage
+    // fn active_character(&self) -> &Rc<character::Character> {
+    //     if self.active_character_index < 0 || self.active_character_index >= 4 {
+    //         panic!("bad character");
+    //     }
+
+    //     &self.characters[self.active_character_index]
+    // }
 }

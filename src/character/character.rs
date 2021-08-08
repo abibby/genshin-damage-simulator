@@ -3,6 +3,7 @@ mod simulator;
 
 use std::collections::HashMap;
 use std::marker::Copy;
+use std::rc::Rc;
 
 #[derive(Debug, Copy, Clone)]
 #[allow(dead_code)]
@@ -18,22 +19,22 @@ pub enum Element {
 }
 
 #[derive(Debug, Clone)]
-pub struct Character<'a> {
-    pub name: &'a str,
-    pub abilities: HashMap<&'a str, Ability<'a>>,
+pub struct Character {
+    pub name: &'static str,
+    pub abilities: HashMap<&'static str, Rc<Ability>>,
 }
 
 #[derive(Debug, Clone)]
-pub struct Ability<'a> {
-    pub name: &'a str,
-    pub damage: Vec<DamageInstance>,
+pub struct Ability {
+    pub name: &'static str,
+    pub hits: Vec<Hit>,
     pub cast_time: simulator::Frame,
     pub stop_on_switch: bool,
     pub icd: simulator::Frame,
 }
 
 #[derive(Debug, Copy, Clone)]
-pub struct DamageInstance {
+pub struct Hit {
     pub frame: simulator::Frame,
     pub damage: f32,
     pub element: Element,
