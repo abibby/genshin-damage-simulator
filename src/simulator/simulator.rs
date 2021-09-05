@@ -28,11 +28,13 @@ impl Simulation {
                 "3" => self.active_character_index = 2,
                 "4" => self.active_character_index = 3,
                 _ => {
-                    let ability = self.characters[self.active_character_index]
-                        .abilities
-                        .get(input)
-                        .unwrap();
-                    self.damage_queue.push(self.current_frame, &ability.hits);
+                    let activeCh = self.characters[self.active_character_index];
+                    let ability = activeCh.abilities.get(input).unwrap();
+                    self.damage_queue.push(
+                        self.current_frame,
+                        activeCh.stats.elemental_master,
+                        &ability.hits,
+                    );
                     self.current_frame += ability.cast_time;
                 }
             }

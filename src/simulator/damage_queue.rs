@@ -1,3 +1,4 @@
+use crate::character::Character;
 use crate::character::Element;
 use crate::character::Hit;
 use crate::simulator::Frame;
@@ -19,14 +20,14 @@ impl DamageQueue {
         }
     }
 
-    pub fn push(&mut self, current_frame: Frame, hits: &Vec<Hit>) {
+    pub fn push(&mut self, current_frame: Frame, em: i32, hits: &Vec<Hit>) {
         for hit in hits {
             self.map.insert(
                 current_frame + hit.frame,
                 DamageInstance {
                     damage: hit.damage,
                     element: hit.element,
-                    em: 0,
+                    em: em,
                 },
             );
         }

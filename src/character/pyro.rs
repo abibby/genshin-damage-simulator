@@ -4,7 +4,7 @@ use crate::simulator::SECOND;
 use std::collections::HashMap;
 use std::rc::Rc;
 
-pub fn klee<'a>() -> Character {
+pub fn pyro<'a>() -> Character {
     let abilities = &mut HashMap::new();
     abilities.insert(
         "n1",
@@ -12,7 +12,7 @@ pub fn klee<'a>() -> Character {
             name: "n1",
             hits: vec![Hit {
                 frame: 0,
-                damage: 130.0,
+                damage: 10.0,
                 element: Element::Pyro,
             }],
             cast_time: 36,
@@ -27,21 +27,21 @@ pub fn klee<'a>() -> Character {
             hits: vec![
                 Hit {
                     frame: 0,
-                    damage: 130.0,
+                    damage: 10.0,
                     element: Element::Pyro,
                 },
                 Hit {
-                    frame: 36,
-                    damage: 112.0,
+                    frame: 30,
+                    damage: 20.0,
                     element: Element::Pyro,
                 },
                 Hit {
-                    frame: 70,
-                    damage: 162.0,
+                    frame: 60,
+                    damage: 40.0,
                     element: Element::Pyro,
                 },
             ],
-            cast_time: 148,
+            cast_time: 90,
             stop_on_switch: false,
             icd: 2 * SECOND,
         }),
@@ -50,30 +50,17 @@ pub fn klee<'a>() -> Character {
         "e",
         Rc::new(Ability {
             name: "e",
-            hits: vec![
-                Hit {
-                    frame: 0,
-                    damage: 171.0,
-                    element: Element::Pyro,
-                },
-                Hit {
-                    frame: 30,
-                    damage: 171.0,
-                    element: Element::Pyro,
-                },
-                Hit {
-                    frame: 60,
-                    damage: 171.0,
-                    element: Element::Pyro,
-                },
-            ],
-            cast_time: 20,
+            hits: vec![Hit {
+                frame: 0,
+                damage: 80.0,
+                element: Element::Pyro,
+            }],
+            cast_time: 30,
             stop_on_switch: false,
             icd: 2 * SECOND,
         }),
     );
 
-    // burst waves https://library.keqingmains.com/evidence/characters/pyro/klee#klee-burst-waves-mechanics
     abilities.insert(
         "q",
         Rc::new(Ability {
@@ -81,32 +68,37 @@ pub fn klee<'a>() -> Character {
             hits: vec![
                 Hit {
                     frame: 0,
-                    damage: 76.8,
+                    damage: 60.0,
                     element: Element::Pyro,
                 },
                 Hit {
-                    frame: 0,
-                    damage: 76.8,
+                    frame: 1,
+                    damage: 60.0,
                     element: Element::Pyro,
                 },
                 Hit {
-                    frame: 0,
-                    damage: 76.8,
+                    frame: 2,
+                    damage: 60.0,
                     element: Element::Pyro,
                 },
             ],
-            cast_time: 20,
+            cast_time: 60,
             stop_on_switch: false,
             icd: 2 * SECOND,
         }),
     );
 
-    // klee frame counts https://docs.google.com/spreadsheets/d/1tXwNi_TPojdocCIci3v6nhd87kNwsmFpOjxJS3NKMKs/edit#gid=1945968461
-    let klee = Character {
-        name: "Klee",
-        abilities: abilities.clone(),
-        stats: zeroStats(),
-    };
+    let stats = zeroStats();
 
-    klee
+    stats.base_atk = 100;
+    stats.extra_atk = 100;
+    stats.elemental_master = 100;
+    stats.crit_rate = 50.0;
+    stats.crit_dmg = 100.0;
+
+    Character {
+        name: "pyro",
+        abilities: abilities.clone(),
+        stats: stats,
+    }
 }

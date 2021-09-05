@@ -2,14 +2,14 @@ mod character;
 mod simulator;
 
 fn main() {
-    let k1 = character::klee();
-    let k2 = character::klee();
-    let k3 = character::klee();
-    let k4 = character::klee();
+    let c1 = character::pyro();
+    let c2 = character::hydro();
+    let c3 = character::klee();
+    let c4 = character::klee();
 
     let mut s =
-        simulator::Simulation::new([Box::new(k1), Box::new(k2), Box::new(k3), Box::new(k4)]);
-    let d = s.run(vec!["n1", "n1", "e"]);
+        simulator::Simulation::new([Box::new(c1), Box::new(c2), Box::new(c3), Box::new(c4)]);
+    let d = s.run(vec!["n1", "n1", "e", "2", "n1"]);
 
     println!("total damage: {}", d);
 }
