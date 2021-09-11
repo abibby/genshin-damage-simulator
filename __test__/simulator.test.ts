@@ -22,6 +22,7 @@ function character(element: Element, mv: number): Character {
                     hits: [
                         {
                             element: element,
+                            gauge: 1,
                             frame: 0,
                             motionValue: mv,
                             stat: 'atk',
@@ -38,5 +39,45 @@ describe('simulator', () => {
         const s = new Simulation()
         const damage = run(s, [character(Element.Pyro, 10)], ['n1'])
         expect(damage).toBe(10)
+    })
+
+    test('melt', () => {
+        const s = new Simulation()
+        const damage = run(
+            s,
+            [character(Element.Cryo, 10), character(Element.Pyro, 10)],
+            ['n1', '2', 'n1'],
+        )
+        expect(damage).toBe(10 + 10 * 2)
+    })
+
+    test('reverse melt', () => {
+        const s = new Simulation()
+        const damage = run(
+            s,
+            [character(Element.Pyro, 10), character(Element.Cryo, 10)],
+            ['n1', '2', 'n1'],
+        )
+        expect(damage).toBe(10 + 10 * 1.5)
+    })
+
+    test('double reverse melt', () => {
+        const s = new Simulation()
+        const damage = run(
+            s,
+            [character(Element.Pyro, 10), character(Element.Cryo, 10)],
+            ['n1', '2', 'n1', 'n1'],
+        )
+        expect(damage).toBe(10 + 10 * 1.5 + 10 * 1.5)
+    })
+
+    test('melt once', () => {
+        const s = new Simulation()
+        const damage = run(
+            s,
+            [character(Element.Cryo, 10), character(Element.Pyro, 10)],
+            ['n1', '2', 'n1', 'n1'],
+        )
+        expect(damage).toBe(10 + 10 * 2 + 10)
     })
 })

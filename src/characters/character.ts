@@ -1,5 +1,6 @@
 export enum Element {
     Pyro,
+    Cryo,
     Hydro,
     Anemo,
     Electro,
@@ -51,6 +52,7 @@ export interface Ability {
 
 export interface Hit {
     element: Element
+    gauge: number
     frame: number
     motionValue: number
     stat: keyof Stats
