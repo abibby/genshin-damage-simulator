@@ -1,16 +1,17 @@
 export enum Element {
-    Pyro,
-    Cryo,
-    Hydro,
-    Anemo,
-    Electro,
-    Dendro,
-    Geo,
-    Physical,
+    Pyro = 'pyro',
+    Cryo = 'cryo',
+    Hydro = 'hydro',
+    Anemo = 'anemo',
+    Electro = 'electro',
+    Dendro = 'dendro',
+    Geo = 'geo',
+    Physical = 'physical',
 }
 
 export interface Character {
     name: string
+    level: number
     stats: Stats
     abilities: Map<string, Ability>
 }
