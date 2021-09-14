@@ -15,7 +15,7 @@ function crossJoin<A, B, C>(
     return result
 }
 
-function character(hit: Hit, level: number = 90, stats: Partial<Stats> = {}): Character {
+function character(hits: Hit[], level: number = 90, stats: Partial<Stats> = {}): Character {
     return {
         name: 'test character',
         level: level,
@@ -34,21 +34,35 @@ function character(hit: Hit, level: number = 90, stats: Partial<Stats> = {}): Ch
                 'n1',
                 {
                     name: 'n1',
-                    hits: [hit],
+                    castTime: 10,
+                    hits: hits,
                 },
             ],
         ]),
     }
 }
 
-function basicHit(element: Element, mv: number): Hit {
-    return {
+function basicHit(element: Element, mv: number): Hit[] {
+    return [{
         element: element,
         gauge: 1,
         frame: 0,
         motionValue: mv,
         stat: 'atk',
+    }]
+}
+function multiHit(element: Element, mv: number, count: number, interval: number): Hit[] {
+    const hits: Hit[] = []
+    for (let i =0; i < count; i++) {
+        hits.push({
+            element: element,
+            gauge: 1,
+            frame: i * interval,
+            motionValue: mv,
+            stat: 'atk',
+        })
     }
+    return hits
 }
 
 describe('no reactions', () => {
@@ -67,6 +81,12 @@ describe('no reactions', () => {
     test('crit overcap', () => {
         const s = new Simulation()
         const damage = run(s, [character(basicHit(Element.Pyro, 10), 90, {critRate: 150, critDamage: 100})], ['n1'])
+        expect(damage).toBe(20)
+    })
+
+    test('multihit', () => {
+        const s = new Simulation()
+        const damage = run(s, [character(multiHit(Element.Pyro, 10, 2, 20))], ['n1'])
         expect(damage).toBe(20)
     })
 })
@@ -132,7 +152,7 @@ describe('minor amping', () => {
             ['n1', '2', 'n1', 'n1'],
         )
         expect(damage).toBe(10 + 10 * 1.5 + 10 * 1.5)
-    })  
+    })
 
     test.each(mainorAmping)('minor amping crit %s -> %s', (aura: Element, trigger: Element) => {
         const s = new Simulation()
@@ -142,6 +162,25 @@ describe('minor amping', () => {
             ['n1', '2', 'n1'],
         )
         expect(damage).toBe(10 + 10 * 1.5 * 1.5)
+    })
+
+
+    test.each(mainorAmping)('deploy minor amping %s -> %s', (aura: Element, trigger: Element) => {
+        const s = new Simulation()
+        const damage = run(
+            s,
+            [character(multiHit(aura, 10, 3, 19)), character(basicHit(trigger, 10))],
+            ['n1', '2', 'n1', 'n1', 'n1', 'n1', 'n1', 'n1'],
+        )
+        // hydro | pyro vape | hydro | pyro vape | pyro vape | hydro | pyro vape | pyro vape | pyro
+        expect(damage).toBe(
+            // hydro
+            10 * 3
+            // pyro vape
+            + 10 * 1.5 * 5
+            // pyro
+            + 10
+        )
     })
 })
 

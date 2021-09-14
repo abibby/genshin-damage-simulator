@@ -48,6 +48,7 @@ export function getStat(stats: Stats, key: keyof Stats): number {
 
 export interface Ability {
     name: string
+    castTime: number
     hits: Hit[]
 }
 

@@ -1,4 +1,5 @@
 import { Character, Element, getStat } from '../characters/character'
+import { byKey } from '../utils'
 
 export class Simulation {
     private activeCharacterIndex: number = 0
@@ -25,6 +26,7 @@ interface DamageInstance {
     damage: number
     elementalMastery: number
     level: number
+    frame: number
 }
 
 // https://library.keqingmains.com/mechanics/combat/elemental-reactions/elemental-gauge-theory
@@ -122,6 +124,7 @@ export function run(
     sequence: string[],
 ): number {
     const instances: DamageInstance[] = []
+    let currentFrame = 0
     for (const step of sequence) {
         if (step.match(/^[1-4]$/)) {
             simulation.setActiveCharacter(Number(step))
@@ -132,8 +135,10 @@ export function run(
         if (ability === undefined) {
             throw new Error(`No ability ${step} on character ${c.name}`)
         }
+        currentFrame += ability.castTime
         for (const hit of ability.hits) {
             instances.push({
+                frame: currentFrame + hit.frame,
                 element: hit.element,
                 gauge: hit.gauge,
                 damage: critDamage(c, (hit.motionValue / 100) * getStat(c.stats, hit.stat)),
@@ -142,6 +147,9 @@ export function run(
             })
         }
     }
+
+    instances.sort(byKey('frame'))
+
     return instances.reduce((total, instance) => {
         const [damage, gaugeModifier] = reaction(
             simulation.aura,
@@ -150,7 +158,7 @@ export function run(
             instance.elementalMastery,
             instance.level,
         )
-        if (simulation.gauge === 0) {
+        if (simulation.gauge === 0 || simulation.aura === instance.element) {
             simulation.aura = instance.element
             simulation.gauge = instance.gauge
         } else {
