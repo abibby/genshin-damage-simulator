@@ -1,5 +1,5 @@
 import { describe, expect, test } from '@jest/globals'
-import { Ability, Character, Element, Stat } from '../src/characters/character'
+import { Ability, Character, Element, Hit, Stat, Stats } from '../src/characters/character'
 import { run, Simulation } from '../src/simulator/simulator'
 
 function crossJoin<A, B, C>(
@@ -15,11 +15,7 @@ function crossJoin<A, B, C>(
     return result
 }
 
-function character(
-    element: Element,
-    mv: number,
-    level: number = 90,
-): Character {
+function character(hit: Hit, level: number = 90, stats: Partial<Stats> = {}): Character {
     return {
         name: 'test character',
         level: level,
@@ -31,74 +27,125 @@ function character(
             energyRecharge: 0,
             critRate: 0,
             critDamage: 0,
+            ...stats,
         },
         abilities: new Map<string, Ability>([
             [
                 'n1',
                 {
                     name: 'n1',
-                    hits: [
-                        {
-                            element: element,
-                            gauge: 1,
-                            frame: 0,
-                            motionValue: mv,
-                            stat: 'atk',
-                        },
-                    ],
+                    hits: [hit],
                 },
             ],
         ]),
     }
 }
 
-describe('simulator', () => {
+function basicHit(element: Element, mv: number): Hit {
+    return {
+        element: element,
+        gauge: 1,
+        frame: 0,
+        motionValue: mv,
+        stat: 'atk',
+    }
+}
+
+describe('no reactions', () => {
     test('base damage', () => {
         const s = new Simulation()
-        const damage = run(s, [character(Element.Pyro, 10)], ['n1'])
+        const damage = run(s, [character(basicHit(Element.Pyro, 10))], ['n1'])
         expect(damage).toBe(10)
     })
 
-    test('melt', () => {
+    test('crit', () => {
+        const s = new Simulation()
+        const damage = run(s, [character(basicHit(Element.Pyro, 10), 90, {critRate: 50, critDamage: 100})], ['n1'])
+        expect(damage).toBe(15)
+    })
+
+    test('crit overcap', () => {
+        const s = new Simulation()
+        const damage = run(s, [character(basicHit(Element.Pyro, 10), 90, {critRate: 150, critDamage: 100})], ['n1'])
+        expect(damage).toBe(20)
+    })
+})
+
+describe('major amping', () => {
+    const majorAmping = [
+        [Element.Cryo, Element.Pyro],
+        [Element.Pyro, Element.Hydro],
+    ]
+
+    test.each(majorAmping)('major amping %s -> %s', (aura: Element, trigger: Element) => {
         const s = new Simulation()
         const damage = run(
             s,
-            [character(Element.Cryo, 10), character(Element.Pyro, 10)],
+            [character(basicHit(aura, 10)), character(basicHit(trigger, 10))],
             ['n1', '2', 'n1'],
         )
         expect(damage).toBe(10 + 10 * 2)
     })
 
-    test('reverse melt', () => {
+    test.each(majorAmping)('single major amping %s -> %s', (aura: Element, trigger: Element) => {
         const s = new Simulation()
         const damage = run(
             s,
-            [character(Element.Pyro, 10), character(Element.Cryo, 10)],
-            ['n1', '2', 'n1'],
-        )
-        expect(damage).toBe(10 + 10 * 1.5)
-    })
-
-    test('double reverse melt', () => {
-        const s = new Simulation()
-        const damage = run(
-            s,
-            [character(Element.Pyro, 10), character(Element.Cryo, 10)],
-            ['n1', '2', 'n1', 'n1'],
-        )
-        expect(damage).toBe(10 + 10 * 1.5 + 10 * 1.5)
-    })
-
-    test('melt once', () => {
-        const s = new Simulation()
-        const damage = run(
-            s,
-            [character(Element.Cryo, 10), character(Element.Pyro, 10)],
+            [character(basicHit(aura, 10)), character(basicHit(trigger, 10))],
             ['n1', '2', 'n1', 'n1'],
         )
         expect(damage).toBe(10 + 10 * 2 + 10)
     })
 
+    test.each(majorAmping)('major amping crit %s -> %s', (aura: Element, trigger: Element) => {
+        const s = new Simulation()
+        const damage = run(
+            s,
+            [character(basicHit(aura, 10)), character(basicHit(trigger, 10), 90, {critRate: 50, critDamage: 100})],
+            ['n1', '2', 'n1'],
+        )
+        expect(damage).toBe(10 + 10 * 2 * 1.5)
+    })
+})
+
+describe('minor amping', () => {
+    const mainorAmping = [
+        [Element.Pyro, Element.Cryo],
+        [Element.Hydro, Element.Pyro],
+    ]
+
+    test.each(mainorAmping)('minor amping %s -> %s', (aura: Element, trigger: Element) => {
+        const s = new Simulation()
+        const damage = run(
+            s,
+            [character(basicHit(aura, 10)), character(basicHit(trigger, 10))],
+            ['n1', '2', 'n1'],
+        )
+        expect(damage).toBe(10 + 10 * 1.5)
+    })
+
+    test.each(mainorAmping)('double minor amping %s -> %s', (aura: Element, trigger: Element) => {
+        const s = new Simulation()
+        const damage = run(
+            s,
+            [character(basicHit(aura, 10)), character(basicHit(trigger, 10))],
+            ['n1', '2', 'n1', 'n1'],
+        )
+        expect(damage).toBe(10 + 10 * 1.5 + 10 * 1.5)
+    })  
+
+    test.each(mainorAmping)('minor amping crit %s -> %s', (aura: Element, trigger: Element) => {
+        const s = new Simulation()
+        const damage = run(
+            s,
+            [character(basicHit(aura, 10)), character(basicHit(trigger, 10), 90, {critRate: 50, critDamage: 100})],
+            ['n1', '2', 'n1'],
+        )
+        expect(damage).toBe(10 + 10 * 1.5 * 1.5)
+    })
+})
+
+describe('overload', () => {
     const overloadDamage = [
         [1, 34],
         [10, 68],
@@ -119,8 +166,8 @@ describe('simulator', () => {
             const damage = run(
                 s,
                 [
-                    character(Element.Pyro, 10, level),
-                    character(Element.Electro, 10, level),
+                    character(basicHit(Element.Pyro, 10), level),
+                    character(basicHit(Element.Electro, 10), level),
                 ],
                 ['n1', '2', 'n1'],
             )
@@ -135,8 +182,8 @@ describe('simulator', () => {
             const damage = run(
                 s,
                 [
-                    character(Element.Pyro, 10, level),
-                    character(Element.Electro, 10, level),
+                    character(basicHit(Element.Pyro, 10), level),
+                    character(basicHit(Element.Electro, 10), level),
                 ],
                 ['n1', '2', 'n1', 'n1'],
             )
@@ -144,6 +191,24 @@ describe('simulator', () => {
         },
     )
 
+    test.each(overloadDamage)(
+        'overload crit level %i',
+        (level: number, baseDamage: number) => {
+            const s = new Simulation()
+            const damage = run(
+                s,
+                [
+                    character(basicHit(Element.Pyro, 10), level),
+                    character(basicHit(Element.Electro, 10), level, {critRate: 50, critDamage: 100}),
+                ],
+                ['n1', '2', 'n1'],
+            )
+            expect(damage).toBe(10 + 10 * 1.5 + baseDamage)
+        },
+    )
+})
+
+describe('swirl', () => {
     const swirlDamage = [
         [1, 10],
         [10, 20],
@@ -166,17 +231,33 @@ describe('simulator', () => {
 
     test.each(crossJoin(swirlElements, swirlDamage))(
         'double swirl %s level %i',
-        (element: Element, level: number, baseDamage: number) => {
+        (aura: Element, level: number, baseDamage: number) => {
             const s = new Simulation()
             const damage = run(
                 s,
                 [
-                    character(element, 10, level),
-                    character(Element.Anemo, 10, level),
+                    character(basicHit(aura, 10), level),
+                    character(basicHit(Element.Anemo, 10), level),
                 ],
                 ['n1', '2', 'n1', 'n1', 'n1'],
             )
             expect(damage).toBe(10 + 10 + baseDamage + 10 + baseDamage + 10)
+        },
+    )
+
+    test.each(crossJoin(swirlElements, swirlDamage))(
+        'swirl %s crit level %i',
+        (aura: Element, level: number, baseDamage: number) => {
+            const s = new Simulation()
+            const damage = run(
+                s,
+                [
+                    character(basicHit(aura, 10), level),
+                    character(basicHit(Element.Anemo, 10), level, {critRate: 50, critDamage: 100}),
+                ],
+                ['n1', '2', 'n1'],
+            )
+            expect(damage).toBe(10 + 10 * 1.5 + baseDamage)
         },
     )
 })

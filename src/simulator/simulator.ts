@@ -46,32 +46,49 @@ function swirl(dmg: number, em: number, level: number): [number, number] {
     return [dmg + baseDamage, 0.625]
 }
 
+
+function overload(dmg: number, em: number, level: number): [number, number] {
+    const baseDamage =
+        [34, 68, 161, 273, 415, 647, 979, 1533, 2159, 2901][
+            Math.floor(level / 10)
+        ] ?? 0
+    return [dmg + baseDamage, 1.25]
+}
+
+function majorAmplifing(dmg: number, em: number):[number,number]{
+    return [dmg * 2, 2.5]
+}
+
+function minorAmplifing(dmg: number, em: number):[number,number]{
+    return [dmg * 1.5, 0.625]
+}
+function crystallize(dmg: number):[number,number]{
+    return [dmg, 0.625]
+}
+
 const reactions: Reactions = {
     [Element.Pyro]: {
         [Element.Anemo]: swirl,
-        [Element.Cryo](dmg, em) {
-            return [dmg * 1.5, 0.625]
-        },
-        [Element.Electro](dmg, em, level) {
-            const baseDamage =
-                [34, 68, 161, 273, 415, 647, 979, 1533, 2159, 2901][
-                    Math.floor(level / 10)
-                ] ?? 0
-            return [dmg + baseDamage, 1.25]
-        },
+        [Element.Geo]: crystallize,
+        [Element.Cryo]: minorAmplifing,
+        [Element.Electro]: overload,
+        [Element.Hydro]: majorAmplifing,
     },
     [Element.Cryo]: {
         [Element.Anemo]: swirl,
-        [Element.Pyro](dmg, em) {
-            return [dmg * 2, 2.5]
-        },
+        [Element.Geo]: crystallize,
+        [Element.Pyro]: majorAmplifing,
     },
     [Element.Hydro]: {
         [Element.Anemo]: swirl,
+        [Element.Geo]: crystallize,
+        [Element.Pyro]: minorAmplifing,
     },
     // [Element.Anemo]: undefined,
     [Element.Electro]: {
         [Element.Anemo]: swirl,
+        [Element.Geo]: crystallize,
+        [Element.Pyro]: overload,
     },
     // [Element.Dendro]: undefined,
     // [Element.Geo]: undefined,
@@ -91,6 +108,12 @@ function reaction(
             0,
         ]
     )
+}
+
+function critDamage(c: Character, baseDamage: number): number{
+    const cr = Math.min(c.stats.critRate / 100, 1)
+    const cd = c.stats.critDamage / 100
+    return baseDamage * cr * (1 + cd) + baseDamage * (1 - cr) 
 }
 
 export function run(
@@ -113,7 +136,7 @@ export function run(
             instances.push({
                 element: hit.element,
                 gauge: hit.gauge,
-                damage: (hit.motionValue / 100) * getStat(c.stats, hit.stat),
+                damage: critDamage(c, (hit.motionValue / 100) * getStat(c.stats, hit.stat)),
                 elementalMastery: c.stats.elementalMastery,
                 level: c.level,
             })
