@@ -40,12 +40,15 @@ type Reactions = {
     }
 }
 
+function transformativeEMBonus(em: number): number {    
+    return 1 + ((1600 * (em / (em + 2000))) / 100)
+}
 function swirl(dmg: number, em: number, level: number): [number, number] {
     const baseDamage =
         [10, 20, 48, 82, 124, 194, 294, 460, 648, 868][
             Math.floor(level / 10)
         ] ?? 0
-    return [dmg + baseDamage, 0.625]
+    return [dmg + baseDamage * transformativeEMBonus(em), 0.625]
 }
 
 
@@ -54,15 +57,19 @@ function overload(dmg: number, em: number, level: number): [number, number] {
         [34, 68, 161, 273, 415, 647, 979, 1533, 2159, 2901][
             Math.floor(level / 10)
         ] ?? 0
-    return [dmg + baseDamage, 1.25]
+    return [dmg + baseDamage * transformativeEMBonus(em), 1.25]
+}
+
+function ampingEMBonus(em: number): number {    
+    return 1 + ((278 * (em / (em + 1400))) / 100)
 }
 
 function majorAmplifing(dmg: number, em: number):[number,number]{
-    return [dmg * 2, 2.5]
+    return [dmg * 2 * ampingEMBonus(em), 2.5]
 }
 
 function minorAmplifing(dmg: number, em: number):[number,number]{
-    return [dmg * 1.5, 0.625]
+    return [dmg * 1.5 * ampingEMBonus(em), 0.625]
 }
 function crystallize(dmg: number):[number,number]{
     return [dmg, 0.625]

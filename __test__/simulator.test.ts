@@ -182,6 +182,16 @@ describe('minor amping', () => {
             + 10
         )
     })
+
+    test.each(mainorAmping)('minor amping em %s -> %s', (aura: Element, trigger: Element) => {
+        const s = new Simulation()
+        const damage = run(
+            s,
+            [character(basicHit(aura, 10)), character(basicHit(trigger, 10), 90, {elementalMastery: 100})],
+            ['n1', '2', 'n1'],
+        )
+        expect(damage).toBeCloseTo(10 + 10 * 1.5 * 1.18533333)
+    })
 })
 
 describe('overload', () => {
@@ -243,6 +253,23 @@ describe('overload', () => {
                 ['n1', '2', 'n1'],
             )
             expect(damage).toBe(10 + 10 * 1.5 + baseDamage)
+        },
+    )
+
+    test.each(overloadDamage)(
+        'overload em level %i',
+        (level: number, baseDamage: number) => {
+            const s = new Simulation()
+            const damage = run(
+                s,
+                [
+                    character(basicHit(Element.Pyro, 10), level),
+                    character(basicHit(Element.Electro, 10), level, {elementalMastery: 100}),
+                ],
+                ['n1', '2', 'n1'],
+            )
+
+            expect(damage).toBeCloseTo(10 + 10 + baseDamage * 1.76190476)
         },
     )
 })
