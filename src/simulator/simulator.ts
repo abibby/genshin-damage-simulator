@@ -40,8 +40,8 @@ type Reactions = {
     }
 }
 
-function transformativeEMBonus(em: number): number {    
-    return 1 + ((1600 * (em / (em + 2000))) / 100)
+function transformativeEMBonus(em: number): number {
+    return 1 + (1600 * (em / (em + 2000))) / 100
 }
 function swirl(dmg: number, em: number, level: number): [number, number] {
     const baseDamage =
@@ -51,7 +51,6 @@ function swirl(dmg: number, em: number, level: number): [number, number] {
     return [dmg + baseDamage * transformativeEMBonus(em), 0.625]
 }
 
-
 function overload(dmg: number, em: number, level: number): [number, number] {
     const baseDamage =
         [34, 68, 161, 273, 415, 647, 979, 1533, 2159, 2901][
@@ -60,18 +59,18 @@ function overload(dmg: number, em: number, level: number): [number, number] {
     return [dmg + baseDamage * transformativeEMBonus(em), 1.25]
 }
 
-function ampingEMBonus(em: number): number {    
-    return 1 + ((278 * (em / (em + 1400))) / 100)
+function ampingEMBonus(em: number): number {
+    return 1 + (278 * (em / (em + 1400))) / 100
 }
 
-function majorAmplifing(dmg: number, em: number):[number,number]{
+function majorAmplifying(dmg: number, em: number): [number, number] {
     return [dmg * 2 * ampingEMBonus(em), 2.5]
 }
 
-function minorAmplifing(dmg: number, em: number):[number,number]{
+function minorAmplifying(dmg: number, em: number): [number, number] {
     return [dmg * 1.5 * ampingEMBonus(em), 0.625]
 }
-function crystallize(dmg: number):[number,number]{
+function crystallize(dmg: number): [number, number] {
     return [dmg, 0.625]
 }
 
@@ -79,19 +78,19 @@ const reactions: Reactions = {
     [Element.Pyro]: {
         [Element.Anemo]: swirl,
         [Element.Geo]: crystallize,
-        [Element.Cryo]: minorAmplifing,
+        [Element.Cryo]: minorAmplifying,
         [Element.Electro]: overload,
-        [Element.Hydro]: majorAmplifing,
+        [Element.Hydro]: majorAmplifying,
     },
     [Element.Cryo]: {
         [Element.Anemo]: swirl,
         [Element.Geo]: crystallize,
-        [Element.Pyro]: majorAmplifing,
+        [Element.Pyro]: majorAmplifying,
     },
     [Element.Hydro]: {
         [Element.Anemo]: swirl,
         [Element.Geo]: crystallize,
-        [Element.Pyro]: minorAmplifing,
+        [Element.Pyro]: minorAmplifying,
     },
     // [Element.Anemo]: undefined,
     [Element.Electro]: {
@@ -119,10 +118,10 @@ function reaction(
     )
 }
 
-function critDamage(c: Character, baseDamage: number): number{
+function critDamage(c: Character, baseDamage: number): number {
     const cr = Math.min(c.stats.critRate / 100, 1)
     const cd = c.stats.critDamage / 100
-    return baseDamage * cr * (1 + cd) + baseDamage * (1 - cr) 
+    return baseDamage * cr * (1 + cd) + baseDamage * (1 - cr)
 }
 
 export function run(
@@ -148,7 +147,10 @@ export function run(
                 frame: currentFrame + hit.frame,
                 element: hit.element,
                 gauge: hit.gauge,
-                damage: critDamage(c, (hit.motionValue / 100) * getStat(c.stats, hit.stat)),
+                damage: critDamage(
+                    c,
+                    (hit.motionValue / 100) * getStat(c.stats, hit.stat),
+                ),
                 elementalMastery: c.stats.elementalMastery,
                 level: c.level,
             })

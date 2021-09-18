@@ -50,6 +50,7 @@ export interface Ability {
     name: string
     castTime: number
     hits: Hit[]
+    buffs: Buffs[]
 }
 
 export interface Hit {
@@ -58,4 +59,22 @@ export interface Hit {
     frame: number
     motionValue: number
     stat: keyof Stats
+}
+
+export interface Buff {
+    frame: number
+    duration: number
+}
+
+export interface StatBuff extends Buff {
+    flat: number
+    percent: number
+}
+
+export interface FlatBuff extends Buff {
+    flat: number
+}
+
+export type Buffs = {
+    [P in keyof Stats]?: Stats[P] extends Stat ? StatBuff : FlatBuff
 }
