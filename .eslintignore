@@ -1,0 +1,5 @@
+node_modules
+dist
+__test__
+.eslintrc.js
+jest.config.js

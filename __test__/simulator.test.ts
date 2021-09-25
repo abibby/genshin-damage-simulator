@@ -1,6 +1,7 @@
 import { describe, expect, test } from '@jest/globals'
 import {
     Ability,
+    BuffCharacter,
     Character,
     Element,
     Hit,
@@ -24,7 +25,7 @@ function crossJoin<A, B, C>(
 
 function character(
     hits: Hit[],
-    level: number = 90,
+    level = 90,
     stats: Partial<Stats> = {},
 ): Character {
     return {
@@ -136,6 +137,15 @@ describe('buff', () => {
     test('base damage', () => {
         const s = new Simulation()
         const c1 = character([])
+        c1.abilities.get('n1')!.buffs[0] = {
+            atk: {
+                frame: 0,
+                duration: 60,
+                character: BuffCharacter.All,
+                flat: 10,
+                percent: 0,
+            },
+        }
         const damage = run(
             s,
             [c1, character(basicHit(Element.Pyro, 10))],

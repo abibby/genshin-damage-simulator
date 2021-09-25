@@ -23,7 +23,7 @@ export class Stat {
         public flat: number,
     ) {}
 
-    value() {
+    value(): number {
         return this.base + this.base * this.percent + this.flat
     }
 }
@@ -64,6 +64,13 @@ export interface Hit {
 export interface Buff {
     frame: number
     duration: number
+    character: BuffCharacter
+}
+
+export enum BuffCharacter {
+    Self,
+    Active,
+    All,
 }
 
 export interface StatBuff extends Buff {

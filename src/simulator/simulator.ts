@@ -1,10 +1,10 @@
+import PriorityQueue from 'priorityqueuejs'
 import { Character, Element, getStat } from '../characters/character'
-import { byKey } from '../utils'
 
 export class Simulation {
-    private activeCharacterIndex: number = 0
+    private activeCharacterIndex = 0
     public aura: Element = Element.Physical
-    public gauge: number = 0
+    public gauge = 0
 
     public activeCharacter(characters: Character[]): Character {
         const c = characters[this.activeCharacterIndex]
@@ -129,7 +129,11 @@ export function run(
     characters: Character[],
     sequence: string[],
 ): number {
-    const instances: DamageInstance[] = []
+    const instanceQueue = new PriorityQueue<DamageInstance>(
+        (a, b) => b.frame - a.frame,
+    )
+    // const instances: DamageInstance[] = []
+    let totalDamage = 0
     let currentFrame = 0
     for (const step of sequence) {
         if (step.match(/^[1-4]$/)) {
@@ -143,7 +147,7 @@ export function run(
         }
         currentFrame += ability.castTime
         for (const hit of ability.hits) {
-            instances.push({
+            instanceQueue.enq({
                 frame: currentFrame + hit.frame,
                 element: hit.element,
                 gauge: hit.gauge,
@@ -155,28 +159,58 @@ export function run(
                 level: c.level,
             })
         }
+
+        for (const buff of ability.buffs) {
+            // instances.push({
+            //     frame: currentFrame + hit.frame,
+            //     element: hit.element,
+            //     gauge: hit.gauge,
+            //     damage: critDamage(
+            //         c,
+            //         (hit.motionValue / 100) * getStat(c.stats, hit.stat),
+            //     ),
+            //     elementalMastery: c.stats.elementalMastery,
+            //     level: c.level,
+            // })
+        }
+
+        while (
+            !instanceQueue.isEmpty() &&
+            instanceQueue.peek().frame < currentFrame
+        ) {
+            const instance = instanceQueue.deq()
+            totalDamage += simulateInstance(simulation, instance)
+        }
     }
 
-    instances.sort(byKey('frame'))
+    while (!instanceQueue.isEmpty()) {
+        const instance = instanceQueue.deq()
+        totalDamage += simulateInstance(simulation, instance)
+    }
 
-    return instances.reduce((total, instance) => {
-        const [damage, gaugeModifier] = reaction(
-            simulation.aura,
-            instance.element,
-            instance.damage,
-            instance.elementalMastery,
-            instance.level,
-        )
-        if (simulation.gauge === 0 || simulation.aura === instance.element) {
-            simulation.aura = instance.element
-            simulation.gauge = instance.gauge
-        } else {
-            simulation.gauge -= instance.gauge * gaugeModifier
-        }
-        if (simulation.gauge <= 0) {
-            simulation.aura = Element.Physical
-            simulation.gauge = 0
-        }
-        return total + damage
-    }, 0)
+    return totalDamage
+}
+
+function simulateInstance(
+    simulation: Simulation,
+    instance: DamageInstance,
+): number {
+    const [damage, gaugeModifier] = reaction(
+        simulation.aura,
+        instance.element,
+        instance.damage,
+        instance.elementalMastery,
+        instance.level,
+    )
+    if (simulation.gauge === 0 || simulation.aura === instance.element) {
+        simulation.aura = instance.element
+        simulation.gauge = instance.gauge
+    } else {
+        simulation.gauge -= instance.gauge * gaugeModifier
+    }
+    if (simulation.gauge <= 0) {
+        simulation.aura = Element.Physical
+        simulation.gauge = 0
+    }
+    return damage
 }

@@ -19,22 +19,22 @@
  * @param col the column to sort the data by
  * @param order if you want to sort in descending or ascending order
  */
- export function byKey<T>(
+export function byKey<T>(
     col: keyof T,
-    order: "asc" | "desc" = "asc"
-  ): (a: T, b: T) => number {
+    order: 'asc' | 'desc' = 'asc',
+): (a: T, b: T) => number {
     return (a, b): number => {
-      let ret = 0;
-      if (a[col] === b[col]) {
-        ret = 0;
-      } else if (a[col] > b[col]) {
-        ret = 1;
-      } else {
-        ret = -1;
-      }
-      if (order === "desc") {
-        ret = -ret;
-      }
-      return ret;
-    };
-  }
+        let ret = 0
+        if (a[col] === b[col]) {
+            ret = 0
+        } else if (a[col] > b[col]) {
+            ret = 1
+        } else {
+            ret = -1
+        }
+        if (order === 'desc') {
+            ret = -ret
+        }
+        return ret
+    }
+}
