@@ -1,32 +1,29 @@
 import PriorityQueue from 'priorityqueuejs'
-import { Character, Element, getStat } from '../characters/character'
-
-export class Simulation {
-    private activeCharacterIndex = 0
-    public aura: Element = Element.Physical
-    public gauge = 0
-
-    public activeCharacter(characters: Character[]): Character {
-        const c = characters[this.activeCharacterIndex]
-        if (c === undefined) {
-            throw new Error(
-                `No character at index ${this.activeCharacterIndex}`,
-            )
-        }
-        return c
-    }
-    public setActiveCharacter(i: number): void {
-        this.activeCharacterIndex = i - 1
-    }
-}
+import {
+    addStatBonuses,
+    Character,
+    Element,
+    StatBonuses,
+    Stats,
+} from '../characters/character'
 
 interface DamageInstance {
+    type: 'damage'
     element: Element
     gauge: number
-    damage: number
-    elementalMastery: number
-    level: number
+    motionValue: number
+    stat: keyof Stats
+    character: Character
     frame: number
+}
+
+interface BuffInstance {
+    type: 'buff'
+    name: string
+    character: Character
+    statBonuses: StatBonuses
+    frame: number
+    endFrame: number
 }
 
 // https://library.keqingmains.com/mechanics/combat/elemental-reactions/elemental-gauge-theory
@@ -124,93 +121,147 @@ function critDamage(c: Character, baseDamage: number): number {
     return baseDamage * cr * (1 + cd) + baseDamage * (1 - cr)
 }
 
-export function run(
-    simulation: Simulation,
-    characters: Character[],
-    sequence: string[],
-): number {
-    const instanceQueue = new PriorityQueue<DamageInstance>(
-        (a, b) => b.frame - a.frame,
-    )
-    // const instances: DamageInstance[] = []
-    let totalDamage = 0
-    let currentFrame = 0
-    for (const step of sequence) {
-        if (step.match(/^[1-4]$/)) {
-            simulation.setActiveCharacter(Number(step))
-            continue
-        }
-        const c = simulation.activeCharacter(characters)
-        const ability = c.abilities.get(step)
-        if (ability === undefined) {
-            throw new Error(`No ability ${step} on character ${c.name}`)
-        }
-        currentFrame += ability.castTime
-        for (const hit of ability.hits) {
-            instanceQueue.enq({
-                frame: currentFrame + hit.frame,
-                element: hit.element,
-                gauge: hit.gauge,
-                damage: critDamage(
-                    c,
-                    (hit.motionValue / 100) * getStat(c.stats, hit.stat),
-                ),
-                elementalMastery: c.stats.elementalMastery,
-                level: c.level,
-            })
-        }
+export class Simulation {
+    private activeCharacterIndex = 0
+    public aura: Element = Element.Physical
+    public gauge = 0
+    public currentFrame = 0
+    public totalDamage = 0
 
-        for (const buff of ability.buffs) {
-            // instances.push({
-            //     frame: currentFrame + hit.frame,
-            //     element: hit.element,
-            //     gauge: hit.gauge,
-            //     damage: critDamage(
-            //         c,
-            //         (hit.motionValue / 100) * getStat(c.stats, hit.stat),
-            //     ),
-            //     elementalMastery: c.stats.elementalMastery,
-            //     level: c.level,
-            // })
-        }
+    public readonly buffs = new Map<string, BuffInstance>()
 
-        while (
-            !instanceQueue.isEmpty() &&
-            instanceQueue.peek().frame < currentFrame
-        ) {
-            const instance = instanceQueue.deq()
-            totalDamage += simulateInstance(simulation, instance)
+    public activeCharacter(characters: Character[]): Character {
+        const c = characters[this.activeCharacterIndex]
+        if (c === undefined) {
+            throw new Error(
+                `No character at index ${this.activeCharacterIndex}`,
+            )
         }
+        return c
+    }
+    public setActiveCharacter(i: number): void {
+        this.activeCharacterIndex = i - 1
     }
 
-    while (!instanceQueue.isEmpty()) {
-        const instance = instanceQueue.deq()
-        totalDamage += simulateInstance(simulation, instance)
+    public getStat(
+        character: Character,
+        frame: number,
+        key: keyof Stats,
+    ): number {
+        let buffs: StatBonuses = {}
+        for (const [name, buff] of this.buffs) {
+            if (frame > buff.endFrame) {
+                this.buffs.delete(name)
+                continue
+            }
+            if (frame < buff.frame) {
+                continue
+            }
+
+            buffs = addStatBonuses(buffs, buff.statBonuses)
+        }
+
+        const stat = character.stats[key]
+
+        const buff = buffs[key] ?? { percent: 0, flat: 0 }
+        if (typeof stat === 'number') {
+            return stat + buff.flat
+        }
+        return stat.valueWithBonus(buff)
+    }
+    run(characters: Character[], sequence: string[]): number {
+        const instanceQueue = new PriorityQueue<DamageInstance | BuffInstance>(
+            (a, b) => b.frame - a.frame,
+        )
+        // const instances: DamageInstance[] = []
+        // let totalDamage = 0
+        // let currentFrame = 0
+        for (const step of sequence.concat(['end'])) {
+            if (step.match(/^[1-4]$/)) {
+                this.setActiveCharacter(Number(step))
+                continue
+            }
+            const c = this.activeCharacter(characters)
+            if (step === 'end') {
+                this.currentFrame = Number.MAX_SAFE_INTEGER
+            } else {
+                const ability = c.abilities.get(step)
+                if (ability === undefined) {
+                    throw new Error(`No ability ${step} on character ${c.name}`)
+                }
+                this.currentFrame += ability.castTime
+
+                for (const buff of ability.buffs) {
+                    instanceQueue.enq({
+                        type: 'buff',
+                        name: ability.name,
+                        frame: this.currentFrame + buff.frame,
+                        endFrame:
+                            this.currentFrame + buff.frame + buff.duration,
+                        character: c,
+                        statBonuses: buff.statBonuses,
+                    })
+                }
+
+                for (const hit of ability.hits) {
+                    instanceQueue.enq({
+                        type: 'damage',
+                        frame: this.currentFrame + hit.frame,
+                        element: hit.element,
+                        gauge: hit.gauge,
+                        motionValue: hit.motionValue,
+                        stat: hit.stat,
+                        character: c,
+                    })
+                }
+            }
+
+            while (
+                !instanceQueue.isEmpty() &&
+                instanceQueue.peek().frame < this.currentFrame
+            ) {
+                const instance = instanceQueue.deq()
+                switch (instance.type) {
+                    case 'damage':
+                        this.totalDamage += this.simulateInstance(instance)
+                        break
+                    case 'buff':
+                        this.buffs.set(instance.name, instance)
+                        break
+                }
+            }
+        }
+
+        return this.totalDamage
     }
 
-    return totalDamage
-}
+    private simulateInstance(instance: DamageInstance): number {
+        const [damage, gaugeModifier] = reaction(
+            this.aura,
+            instance.element,
+            critDamage(
+                instance.character,
+                (instance.motionValue / 100) *
+                    this.getStat(
+                        instance.character,
+                        instance.frame,
+                        instance.stat,
+                    ),
+            ),
+            instance.character.stats.elementalMastery,
+            instance.character.level,
+        )
 
-function simulateInstance(
-    simulation: Simulation,
-    instance: DamageInstance,
-): number {
-    const [damage, gaugeModifier] = reaction(
-        simulation.aura,
-        instance.element,
-        instance.damage,
-        instance.elementalMastery,
-        instance.level,
-    )
-    if (simulation.gauge === 0 || simulation.aura === instance.element) {
-        simulation.aura = instance.element
-        simulation.gauge = instance.gauge
-    } else {
-        simulation.gauge -= instance.gauge * gaugeModifier
+        if (this.gauge === 0 || this.aura === instance.element) {
+            this.aura = instance.element
+            this.gauge = instance.gauge
+        } else {
+            this.gauge -= instance.gauge * gaugeModifier
+        }
+        if (this.gauge <= 0) {
+            this.aura = Element.Physical
+            this.gauge = 0
+        }
+        return damage
     }
-    if (simulation.gauge <= 0) {
-        simulation.aura = Element.Physical
-        simulation.gauge = 0
-    }
-    return damage
 }

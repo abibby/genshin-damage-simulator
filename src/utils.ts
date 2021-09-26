@@ -38,3 +38,7 @@ export function byKey<T>(
         return ret
     }
 }
+
+export const keys = Object.keys as <T extends Record<string, unknown>>(
+    o: T,
+) => Array<keyof T>

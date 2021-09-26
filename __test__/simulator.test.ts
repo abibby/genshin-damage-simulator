@@ -8,7 +8,7 @@ import {
     Stat,
     Stats,
 } from '../src/characters/character'
-import { run, Simulation } from '../src/simulator/simulator'
+import { Simulation } from '../src/simulator/simulator'
 
 function crossJoin<A, B, C>(
     a: readonly (readonly [A])[],
@@ -88,14 +88,13 @@ function multiHit(
 describe('no reactions', () => {
     test('base damage', () => {
         const s = new Simulation()
-        const damage = run(s, [character(basicHit(Element.Pyro, 10))], ['n1'])
+        const damage = s.run([character(basicHit(Element.Pyro, 10))], ['n1'])
         expect(damage).toBe(10)
     })
 
     test('crit', () => {
         const s = new Simulation()
-        const damage = run(
-            s,
+        const damage = s.run(
             [
                 character(basicHit(Element.Pyro, 10), 90, {
                     critRate: 50,
@@ -109,8 +108,7 @@ describe('no reactions', () => {
 
     test('crit overcap', () => {
         const s = new Simulation()
-        const damage = run(
-            s,
+        const damage = s.run(
             [
                 character(basicHit(Element.Pyro, 10), 90, {
                     critRate: 150,
@@ -124,8 +122,7 @@ describe('no reactions', () => {
 
     test('multihit', () => {
         const s = new Simulation()
-        const damage = run(
-            s,
+        const damage = s.run(
             [character(multiHit(Element.Pyro, 10, 2, 20))],
             ['n1'],
         )
@@ -138,16 +135,17 @@ describe('buff', () => {
         const s = new Simulation()
         const c1 = character([])
         c1.abilities.get('n1')!.buffs[0] = {
-            atk: {
-                frame: 0,
-                duration: 60,
-                character: BuffCharacter.All,
-                flat: 10,
-                percent: 0,
+            frame: 0,
+            duration: 60,
+            character: BuffCharacter.All,
+            statBonuses: {
+                atk: {
+                    flat: 50,
+                    percent: 0,
+                },
             },
         }
-        const damage = run(
-            s,
+        const damage = s.run(
             [c1, character(basicHit(Element.Pyro, 10))],
             ['n1', '2', 'n1'],
         )
@@ -165,8 +163,7 @@ describe('major amping', () => {
         'major amping %s -> %s',
         (aura: Element, trigger: Element) => {
             const s = new Simulation()
-            const damage = run(
-                s,
+            const damage = s.run(
                 [
                     character(basicHit(aura, 10)),
                     character(basicHit(trigger, 10)),
@@ -181,8 +178,7 @@ describe('major amping', () => {
         'single major amping %s -> %s',
         (aura: Element, trigger: Element) => {
             const s = new Simulation()
-            const damage = run(
-                s,
+            const damage = s.run(
                 [
                     character(basicHit(aura, 10)),
                     character(basicHit(trigger, 10)),
@@ -197,8 +193,7 @@ describe('major amping', () => {
         'major amping crit %s -> %s',
         (aura: Element, trigger: Element) => {
             const s = new Simulation()
-            const damage = run(
-                s,
+            const damage = s.run(
                 [
                     character(basicHit(aura, 10)),
                     character(basicHit(trigger, 10), 90, {
@@ -223,8 +218,7 @@ describe('minor amping', () => {
         'minor amping %s -> %s',
         (aura: Element, trigger: Element) => {
             const s = new Simulation()
-            const damage = run(
-                s,
+            const damage = s.run(
                 [
                     character(basicHit(aura, 10)),
                     character(basicHit(trigger, 10)),
@@ -239,8 +233,7 @@ describe('minor amping', () => {
         'double minor amping %s -> %s',
         (aura: Element, trigger: Element) => {
             const s = new Simulation()
-            const damage = run(
-                s,
+            const damage = s.run(
                 [
                     character(basicHit(aura, 10)),
                     character(basicHit(trigger, 10)),
@@ -255,8 +248,7 @@ describe('minor amping', () => {
         'minor amping crit %s -> %s',
         (aura: Element, trigger: Element) => {
             const s = new Simulation()
-            const damage = run(
-                s,
+            const damage = s.run(
                 [
                     character(basicHit(aura, 10)),
                     character(basicHit(trigger, 10), 90, {
@@ -274,8 +266,7 @@ describe('minor amping', () => {
         'deploy minor amping %s -> %s',
         (aura: Element, trigger: Element) => {
             const s = new Simulation()
-            const damage = run(
-                s,
+            const damage = s.run(
                 [
                     character(multiHit(aura, 10, 3, 19)),
                     character(basicHit(trigger, 10)),
@@ -298,8 +289,7 @@ describe('minor amping', () => {
         'minor amping em %s -> %s',
         (aura: Element, trigger: Element) => {
             const s = new Simulation()
-            const damage = run(
-                s,
+            const damage = s.run(
                 [
                     character(basicHit(aura, 10)),
                     character(basicHit(trigger, 10), 90, {
@@ -331,8 +321,7 @@ describe('overload', () => {
         'overload level %i',
         (level: number, baseDamage: number) => {
             const s = new Simulation()
-            const damage = run(
-                s,
+            const damage = s.run(
                 [
                     character(basicHit(Element.Pyro, 10), level),
                     character(basicHit(Element.Electro, 10), level),
@@ -347,8 +336,7 @@ describe('overload', () => {
         'overload once level %i',
         (level: number, baseDamage: number) => {
             const s = new Simulation()
-            const damage = run(
-                s,
+            const damage = s.run(
                 [
                     character(basicHit(Element.Pyro, 10), level),
                     character(basicHit(Element.Electro, 10), level),
@@ -363,8 +351,7 @@ describe('overload', () => {
         'overload crit level %i',
         (level: number, baseDamage: number) => {
             const s = new Simulation()
-            const damage = run(
-                s,
+            const damage = s.run(
                 [
                     character(basicHit(Element.Pyro, 10), level),
                     character(basicHit(Element.Electro, 10), level, {
@@ -382,8 +369,7 @@ describe('overload', () => {
         'overload em level %i',
         (level: number, baseDamage: number) => {
             const s = new Simulation()
-            const damage = run(
-                s,
+            const damage = s.run(
                 [
                     character(basicHit(Element.Pyro, 10), level),
                     character(basicHit(Element.Electro, 10), level, {
@@ -423,8 +409,7 @@ describe('swirl', () => {
         'double swirl %s level %i',
         (aura: Element, level: number, baseDamage: number) => {
             const s = new Simulation()
-            const damage = run(
-                s,
+            const damage = s.run(
                 [
                     character(basicHit(aura, 10), level),
                     character(basicHit(Element.Anemo, 10), level),
@@ -439,8 +424,7 @@ describe('swirl', () => {
         'swirl %s crit level %i',
         (aura: Element, level: number, baseDamage: number) => {
             const s = new Simulation()
-            const damage = run(
-                s,
+            const damage = s.run(
                 [
                     character(basicHit(aura, 10), level),
                     character(basicHit(Element.Anemo, 10), level, {
