@@ -3,8 +3,12 @@ import {
     addStatBonuses,
     Character,
     Element,
+    Hit,
+    SkillType,
     StatBonuses,
     Stats,
+    Trigger,
+    TriggerType,
 } from '../characters/character'
 
 interface DamageInstance {
@@ -25,6 +29,19 @@ interface BuffInstance {
     frame: number
     endFrame: number
 }
+
+interface TriggerInstance {
+    type: 'trigger'
+    name: string
+    character: Character
+    trigger: TriggerType
+    skillType: SkillType
+    hits: Hit[]
+    frame: number
+    endFrame: number
+}
+
+type Instance = DamageInstance | BuffInstance | TriggerInstance
 
 // https://library.keqingmains.com/mechanics/combat/elemental-reactions/elemental-gauge-theory
 type Reactions = {
@@ -123,14 +140,15 @@ function critDamage(c: Character, baseDamage: number): number {
 
 export class Simulation {
     private activeCharacterIndex = 0
-    public aura: Element = Element.Physical
-    public gauge = 0
-    public currentFrame = 0
-    public totalDamage = 0
+    private aura: Element = Element.Physical
+    private gauge = 0
+    private currentFrame = 0
+    private totalDamage = 0
 
-    public readonly buffs = new Map<string, BuffInstance>()
+    private readonly buffs = new Map<string, BuffInstance>()
+    private readonly triggers = new Map<string, TriggerInstance>()
 
-    public activeCharacter(characters: Character[]): Character {
+    private activeCharacter(characters: Character[]): Character {
         const c = characters[this.activeCharacterIndex]
         if (c === undefined) {
             throw new Error(
@@ -139,11 +157,11 @@ export class Simulation {
         }
         return c
     }
-    public setActiveCharacter(i: number): void {
+    private setActiveCharacter(i: number): void {
         this.activeCharacterIndex = i - 1
     }
 
-    public getStat(
+    private getStat(
         character: Character,
         frame: number,
         key: keyof Stats,
@@ -151,7 +169,6 @@ export class Simulation {
         let buffs: StatBonuses = {}
         for (const [name, buff] of this.buffs) {
             if (frame > buff.endFrame) {
-                this.buffs.delete(name)
                 continue
             }
             if (frame < buff.frame) {
@@ -169,8 +186,37 @@ export class Simulation {
         }
         return stat.valueWithBonus(buff)
     }
-    run(characters: Character[], sequence: string[]): number {
-        const instanceQueue = new PriorityQueue<DamageInstance | BuffInstance>(
+
+    private getTriggedDamage(type: SkillType | null, triggerType: TriggerType): DamageInstance[] {
+        const instances: DamageInstance[] = []
+        
+        for (const [name, trigger] of this.triggers) {
+            if (trigger.frame > this.currentFrame) {
+                continue
+            }
+            if (trigger.endFrame < this.currentFrame) {
+                this.triggers.delete(name)
+                continue
+            }
+            if ((trigger.skillType === type || trigger.skillType === null) && trigger.trigger === triggerType) {
+                for (const hit of trigger.hits) {                    
+                    instances.push({
+                        type: 'damage',
+                        frame: this.currentFrame + hit.frame,
+                        element: hit.element,
+                        gauge: hit.gauge,
+                        motionValue: hit.motionValue,
+                        stat: hit.stat,
+                        character: trigger.character,
+                    })
+                }
+            }
+        }
+        return instances
+    }
+
+    public run(characters: Character[], sequence: string[]): number {
+        const instanceQueue = new PriorityQueue<Instance>(
             (a, b) => b.frame - a.frame,
         )
         // const instances: DamageInstance[] = []
@@ -203,6 +249,19 @@ export class Simulation {
                     })
                 }
 
+                for (const trigger of ability.triggers) {
+                    this.triggers.set(ability.name, {
+                        type: 'trigger',
+                        name: ability.name,
+                        skillType: ability.type,
+                        character: c,
+                        hits: trigger.hits,
+                        trigger: trigger.trigger,
+                        frame: this.currentFrame + ability.castTime,
+                        endFrame: this.currentFrame + trigger.duration,
+                    })
+                }
+
                 for (const hit of ability.hits) {
                     instanceQueue.enq({
                         type: 'damage',
@@ -214,6 +273,11 @@ export class Simulation {
                         character: c,
                     })
                 }
+                for (const instance of this.getTriggedDamage(ability.type, TriggerType.Cast)) {
+                    instanceQueue.enq(instance)
+                }
+
+
             }
 
             while (
@@ -227,6 +291,8 @@ export class Simulation {
                         break
                     case 'buff':
                         this.buffs.set(instance.name, instance)
+                        break
+                    case 'trigger':
                         break
                 }
             }

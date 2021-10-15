@@ -5,8 +5,11 @@ import {
     Character,
     Element,
     Hit,
+    SkillType,
     Stat,
     Stats,
+    Trigger,
+    TriggerType,
 } from '../src/characters/character'
 import { Simulation } from '../src/simulator/simulator'
 
@@ -46,9 +49,11 @@ function character(
                 'n1',
                 {
                     name: 'n1',
+                    type: SkillType.Normal,
                     castTime: 10,
                     hits: hits,
                     buffs: [],
+                    triggers: [],
                 },
             ],
         ]),
@@ -437,4 +442,38 @@ describe('swirl', () => {
             expect(damage).toBe(10 + 10 * 1.5 + baseDamage)
         },
     )
+})
+
+describe('trigges', () => {
+    test('triggered on cast', () => {
+        const s = new Simulation()
+        const c1 = character([])
+        c1.abilities.get('n1')!.triggers.push({            
+            trigger: TriggerType.Cast,
+            type: SkillType.Normal,
+            duration: 100,
+            hits: basicHit(Element.Pyro, 20),
+        })
+        const damage = s.run(
+            [c1, character(basicHit(Element.Pyro, 10))],
+            ['n1', '2', 'n1'],
+        )
+        expect(damage).toBe(30)
+    })
+
+    test('triggered on damage', () => {
+        const s = new Simulation()
+        const c1 = character([])
+        c1.abilities.get('n1')!.triggers.push({            
+            trigger: TriggerType.Damage,
+            type: SkillType.Normal,
+            duration: 100,
+            hits: basicHit(Element.Pyro, 20),
+        })
+        const damage = s.run(
+            [c1, character(basicHit(Element.Pyro, 10))],
+            ['n1', '2', 'n1'],
+        )
+        expect(damage).toBe(30)
+    })
 })
