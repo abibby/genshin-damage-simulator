@@ -19,6 +19,7 @@ interface DamageInstance {
     stat: keyof Stats
     character: Character
     startFrame: number
+    snapshotFrame: number | undefined
 }
 
 interface BuffInstance {
@@ -184,6 +185,7 @@ export class Simulation {
         type: SkillType | null,
         triggerType: TriggerType,
         frame: number,
+        snapshotFrame: number | undefined,
     ): DamageInstance[] {
         const instances: DamageInstance[] = []
 
@@ -201,6 +203,7 @@ export class Simulation {
                         motionValue: hit.motionValue,
                         stat: hit.stat,
                         character: trigger.character,
+                        snapshotFrame: snapshotFrame,
                     })
                 }
             }
@@ -231,6 +234,9 @@ export class Simulation {
                 }
                 this.currentFrame += ability.castTime
 
+                const snapshotFrame = ability.snapshot
+                    ? this.currentFrame
+                    : undefined
                 for (const buff of ability.buffs) {
                     instanceQueue.enq({
                         type: 'buff',
@@ -265,11 +271,13 @@ export class Simulation {
                         motionValue: hit.motionValue,
                         stat: hit.stat,
                         character: c,
+                        snapshotFrame: snapshotFrame,
                     })
                     for (const instance of this.getTriggedDamage(
                         ability.type,
                         TriggerType.Damage,
                         this.currentFrame + hit.frame,
+                        snapshotFrame,
                     )) {
                         instanceQueue.enq(instance)
                     }
@@ -278,6 +286,7 @@ export class Simulation {
                     ability.type,
                     TriggerType.Cast,
                     this.currentFrame,
+                    snapshotFrame,
                 )) {
                     instanceQueue.enq(instance)
                 }
@@ -313,7 +322,7 @@ export class Simulation {
                 (instance.motionValue / 100) *
                     this.getStat(
                         instance.character,
-                        instance.startFrame,
+                        instance.snapshotFrame ?? instance.startFrame,
                         instance.stat,
                     ),
             ),

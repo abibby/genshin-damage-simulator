@@ -81,7 +81,7 @@ export interface Ability {
     hits: Hit[]
     buffs: Buff[]
     triggers: Trigger[]
-    snapshot?: number
+    snapshot: boolean
 }
 
 export interface Hit {

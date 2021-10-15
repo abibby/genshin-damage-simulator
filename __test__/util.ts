@@ -49,6 +49,7 @@ export function character(
                     hits: hits,
                     buffs: [],
                     triggers: [],
+                    snapshot: false,
                 },
             ],
         ]),
