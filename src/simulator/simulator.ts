@@ -266,17 +266,21 @@ export class Simulation {
                         stat: hit.stat,
                         character: c,
                     })
-                    this.getTriggedDamage(
+                    for (const instance of this.getTriggedDamage(
                         ability.type,
-                        TriggerType.Cast,
+                        TriggerType.Damage,
                         this.currentFrame + hit.frame,
-                    ).forEach(instanceQueue.enq)
+                    )) {
+                        instanceQueue.enq(instance)
+                    }
                 }
-                this.getTriggedDamage(
+                for (const instance of this.getTriggedDamage(
                     ability.type,
-                    TriggerType.Damage,
+                    TriggerType.Cast,
                     this.currentFrame,
-                ).forEach(instanceQueue.enq)
+                )) {
+                    instanceQueue.enq(instance)
+                }
             }
 
             while (

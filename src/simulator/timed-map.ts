@@ -7,7 +7,7 @@ export interface TimedMapItem {
 export class TimedMap<T extends TimedMapItem> {
     private m: T[] = []
 
-    public atTime(frame: number): Iterable<T> {
+    public atTime(frame: number): T[] {
         const items = this.m.filter(
             v => v.startFrame <= frame && frame < v.endFrame,
         )
@@ -18,7 +18,7 @@ export class TimedMap<T extends TimedMapItem> {
             m.set(item.name, item)
         }
 
-        return m.values()
+        return Array.from(m.values())
     }
 
     public set(v: T): void {
