@@ -47,19 +47,41 @@ export interface Stats {
     critDamage: number
 }
 
-// export function getStat(stats: Stats, key: keyof Stats): number {
-//     const stat = stats[key]
-//     if (typeof stat === 'number') {
-//         return stat
-//     }
-//     return stat.value()
+// export enum TriggerType {
+//     Normal,
+//     NormalDamage,
+//     Skill,
+//     SkillDamage,
+//     Burst,
+//     BurstDamage,
+//     Damage,
 // }
+
+export enum SkillType {
+    Normal,
+    Skill,
+    Burst,
+}
+export enum TriggerType {
+    Cast,
+    Damage,
+}
+
+export interface Trigger {
+    trigger: TriggerType
+    type: SkillType | null
+    duration: number
+    hits: Hit[]
+}
 
 export interface Ability {
     name: string
+    type: SkillType
     castTime: number
     hits: Hit[]
     buffs: Buff[]
+    triggers: Trigger[]
+    snapshot: boolean
 }
 
 export interface Hit {

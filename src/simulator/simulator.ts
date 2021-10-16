@@ -3,9 +3,13 @@ import {
     addStatBonuses,
     Character,
     Element,
+    Hit,
+    SkillType,
     StatBonuses,
     Stats,
+    TriggerType,
 } from '../characters/character'
+import { TimedMap } from './timed-map'
 
 interface DamageInstance {
     type: 'damage'
@@ -14,7 +18,8 @@ interface DamageInstance {
     motionValue: number
     stat: keyof Stats
     character: Character
-    frame: number
+    startFrame: number
+    snapshotFrame: number | undefined
 }
 
 interface BuffInstance {
@@ -22,9 +27,22 @@ interface BuffInstance {
     name: string
     character: Character
     statBonuses: StatBonuses
-    frame: number
+    startFrame: number
     endFrame: number
 }
+
+interface TriggerInstance {
+    type: 'trigger'
+    name: string
+    character: Character
+    trigger: TriggerType
+    skillType: SkillType
+    hits: Hit[]
+    startFrame: number
+    endFrame: number
+}
+
+type Instance = DamageInstance | BuffInstance | TriggerInstance
 
 // https://library.keqingmains.com/mechanics/combat/elemental-reactions/elemental-gauge-theory
 type Reactions = {
@@ -123,14 +141,15 @@ function critDamage(c: Character, baseDamage: number): number {
 
 export class Simulation {
     private activeCharacterIndex = 0
-    public aura: Element = Element.Physical
-    public gauge = 0
-    public currentFrame = 0
-    public totalDamage = 0
+    private aura: Element = Element.Physical
+    private gauge = 0
+    private currentFrame = 0
+    private totalDamage = 0
 
-    public readonly buffs = new Map<string, BuffInstance>()
+    private readonly buffs = new TimedMap<BuffInstance>()
+    private readonly triggers = new TimedMap<TriggerInstance>()
 
-    public activeCharacter(characters: Character[]): Character {
+    private activeCharacter(characters: Character[]): Character {
         const c = characters[this.activeCharacterIndex]
         if (c === undefined) {
             throw new Error(
@@ -139,25 +158,17 @@ export class Simulation {
         }
         return c
     }
-    public setActiveCharacter(i: number): void {
+    private setActiveCharacter(i: number): void {
         this.activeCharacterIndex = i - 1
     }
 
-    public getStat(
+    private getStat(
         character: Character,
         frame: number,
         key: keyof Stats,
     ): number {
         let buffs: StatBonuses = {}
-        for (const [name, buff] of this.buffs) {
-            if (frame > buff.endFrame) {
-                this.buffs.delete(name)
-                continue
-            }
-            if (frame < buff.frame) {
-                continue
-            }
-
+        for (const buff of this.buffs.atTime(frame)) {
             buffs = addStatBonuses(buffs, buff.statBonuses)
         }
 
@@ -169,9 +180,41 @@ export class Simulation {
         }
         return stat.valueWithBonus(buff)
     }
-    run(characters: Character[], sequence: string[]): number {
-        const instanceQueue = new PriorityQueue<DamageInstance | BuffInstance>(
-            (a, b) => b.frame - a.frame,
+
+    private getTriggedDamage(
+        type: SkillType | null,
+        triggerType: TriggerType,
+        frame: number,
+        snapshotFrame: number | undefined,
+    ): DamageInstance[] {
+        const instances: DamageInstance[] = []
+
+        for (const trigger of this.triggers.atTime(frame)) {
+            if (
+                (trigger.skillType === type || trigger.skillType === null) &&
+                trigger.trigger === triggerType
+            ) {
+                for (const hit of trigger.hits) {
+                    instances.push({
+                        type: 'damage',
+                        startFrame: frame + hit.frame,
+                        element: hit.element,
+                        gauge: hit.gauge,
+                        motionValue: hit.motionValue,
+                        stat: hit.stat,
+                        character: trigger.character,
+                        snapshotFrame: snapshotFrame,
+                    })
+                }
+            }
+        }
+
+        return instances
+    }
+
+    public run(characters: Character[], sequence: string[]): number {
+        const instanceQueue = new PriorityQueue<Instance>(
+            (a, b) => b.startFrame - a.startFrame,
         )
         // const instances: DamageInstance[] = []
         // let totalDamage = 0
@@ -191,11 +234,14 @@ export class Simulation {
                 }
                 this.currentFrame += ability.castTime
 
+                const snapshotFrame = ability.snapshot
+                    ? this.currentFrame
+                    : undefined
                 for (const buff of ability.buffs) {
                     instanceQueue.enq({
                         type: 'buff',
                         name: ability.name,
-                        frame: this.currentFrame + buff.frame,
+                        startFrame: this.currentFrame + buff.frame,
                         endFrame:
                             this.currentFrame + buff.frame + buff.duration,
                         character: c,
@@ -203,22 +249,52 @@ export class Simulation {
                     })
                 }
 
+                for (const trigger of ability.triggers) {
+                    this.triggers.set({
+                        type: 'trigger',
+                        name: ability.name,
+                        skillType: ability.type,
+                        character: c,
+                        hits: trigger.hits,
+                        trigger: trigger.trigger,
+                        startFrame: this.currentFrame + ability.castTime,
+                        endFrame: this.currentFrame + trigger.duration,
+                    })
+                }
+
                 for (const hit of ability.hits) {
                     instanceQueue.enq({
                         type: 'damage',
-                        frame: this.currentFrame + hit.frame,
+                        startFrame: this.currentFrame + hit.frame,
                         element: hit.element,
                         gauge: hit.gauge,
                         motionValue: hit.motionValue,
                         stat: hit.stat,
                         character: c,
+                        snapshotFrame: snapshotFrame,
                     })
+                    for (const instance of this.getTriggedDamage(
+                        ability.type,
+                        TriggerType.Damage,
+                        this.currentFrame + hit.frame,
+                        snapshotFrame,
+                    )) {
+                        instanceQueue.enq(instance)
+                    }
+                }
+                for (const instance of this.getTriggedDamage(
+                    ability.type,
+                    TriggerType.Cast,
+                    this.currentFrame,
+                    snapshotFrame,
+                )) {
+                    instanceQueue.enq(instance)
                 }
             }
 
             while (
                 !instanceQueue.isEmpty() &&
-                instanceQueue.peek().frame < this.currentFrame
+                instanceQueue.peek().startFrame < this.currentFrame
             ) {
                 const instance = instanceQueue.deq()
                 switch (instance.type) {
@@ -226,7 +302,9 @@ export class Simulation {
                         this.totalDamage += this.simulateInstance(instance)
                         break
                     case 'buff':
-                        this.buffs.set(instance.name, instance)
+                        this.buffs.set(instance)
+                        break
+                    case 'trigger':
                         break
                 }
             }
@@ -244,7 +322,7 @@ export class Simulation {
                 (instance.motionValue / 100) *
                     this.getStat(
                         instance.character,
-                        instance.frame,
+                        instance.snapshotFrame ?? instance.startFrame,
                         instance.stat,
                     ),
             ),
