@@ -1,6 +1,7 @@
 import {
     Ability,
     Character,
+    defaultICD,
     Element,
     Hit,
     SkillType,
@@ -50,7 +51,9 @@ export function character(
                     buffs: [],
                     triggers: [],
                     snapshot: false,
-                    stamina: 0
+                    stamina: 0,
+                    icd: defaultICD,
+                    cooldown: 0,
                 },
             ],
         ]),

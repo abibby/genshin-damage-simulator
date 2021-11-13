@@ -224,7 +224,7 @@ export class Simulation {
         // let currentFrame = 0
         for (const step of sequence.concat(['end'])) {
             if (step.match(/^[1-4]$/)) {
-                this.currentFrame += 30
+                // this.currentFrame += 30
                 this.setActiveCharacter(Number(step))
                 continue
             }
@@ -238,12 +238,16 @@ export class Simulation {
                 }
 
                 if (ability.stamina > 0) {
-                    const last = Math.max(this.currentFrame - this.lastStaminia - 90, 0)
-                    this.stamina = Math.min(this.stamina + (last / 60) * 25, 240)
-                    this.stamina -= ability.stamina;
+                    const last = Math.max(
+                        this.currentFrame - this.lastStaminia - 90,
+                        0,
+                    )
+                    this.stamina = Math.min(
+                        this.stamina + (last / 60) * 25,
+                        240,
+                    )
+                    this.stamina -= ability.stamina
                     if (this.stamina < 0) {
-                        console.log(this.stamina);
-                        
                         throw new OutOfStaminaError()
                     }
                     this.lastStaminia = this.currentFrame

@@ -1,5 +1,7 @@
 import { keys } from '../utils'
 
+export const defaultICD = 2.5 * 60
+
 export enum Element {
     Pyro = 'pyro',
     Cryo = 'cryo',
