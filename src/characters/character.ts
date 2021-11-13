@@ -59,6 +59,7 @@ export interface Stats {
 
 export enum SkillType {
     Normal,
+    Charge,
     Skill,
     Burst,
 }
@@ -82,6 +83,8 @@ export interface Ability {
     buffs: Buff[]
     triggers: Trigger[]
     snapshot: boolean
+    icd: number
+    cooldown: number
 }
 
 export interface Hit {
