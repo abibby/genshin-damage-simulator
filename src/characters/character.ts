@@ -47,16 +47,6 @@ export interface Stats {
     critDamage: number
 }
 
-// export enum TriggerType {
-//     Normal,
-//     NormalDamage,
-//     Skill,
-//     SkillDamage,
-//     Burst,
-//     BurstDamage,
-//     Damage,
-// }
-
 export enum SkillType {
     Normal,
     Charge,
@@ -85,6 +75,7 @@ export interface Ability {
     snapshot: boolean
     icd: number
     cooldown: number
+    stamina: number
 }
 
 export interface Hit {

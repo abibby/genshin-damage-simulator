@@ -50,6 +50,7 @@ export function character(
                     buffs: [],
                     triggers: [],
                     snapshot: false,
+                    stamina: 0
                 },
             ],
         ]),

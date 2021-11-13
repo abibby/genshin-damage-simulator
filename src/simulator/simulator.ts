@@ -9,6 +9,7 @@ import {
     Stats,
     TriggerType,
 } from '../characters/character'
+import { OutOfStaminaError } from './errors'
 import { TimedMap } from './timed-map'
 
 interface DamageInstance {
@@ -145,6 +146,8 @@ export class Simulation {
     private gauge = 0
     private currentFrame = 0
     private totalDamage = 0
+    private stamina = 240
+    private lastStaminia = 0
 
     private readonly buffs = new TimedMap<BuffInstance>()
     private readonly triggers = new TimedMap<TriggerInstance>()
@@ -221,6 +224,7 @@ export class Simulation {
         // let currentFrame = 0
         for (const step of sequence.concat(['end'])) {
             if (step.match(/^[1-4]$/)) {
+                this.currentFrame += 30
                 this.setActiveCharacter(Number(step))
                 continue
             }
@@ -232,6 +236,19 @@ export class Simulation {
                 if (ability === undefined) {
                     throw new Error(`No ability ${step} on character ${c.name}`)
                 }
+
+                if (ability.stamina > 0) {
+                    const last = Math.max(this.currentFrame - this.lastStaminia - 90, 0)
+                    this.stamina = Math.min(this.stamina + (last / 60) * 25, 240)
+                    this.stamina -= ability.stamina;
+                    if (this.stamina < 0) {
+                        console.log(this.stamina);
+                        
+                        throw new OutOfStaminaError()
+                    }
+                    this.lastStaminia = this.currentFrame
+                }
+
                 this.currentFrame += ability.castTime
 
                 const snapshotFrame = ability.snapshot
