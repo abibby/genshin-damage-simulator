@@ -1,15 +1,15 @@
 import { describe, expect, test } from '@jest/globals'
 import { Element } from '../src/characters/character'
-import { Simulation } from '../src/simulator/simulator'
+import { characterSwitchTime, Simulation } from '../src/simulator/simulator'
 import { basicHit, character, multiHit } from './util'
 
 describe('minor amping', () => {
-    const mainorAmping = [
+    const minorAmping = [
         [Element.Pyro, Element.Cryo],
         [Element.Hydro, Element.Pyro],
     ]
 
-    test.each(mainorAmping)(
+    test.each(minorAmping)(
         'minor amping %s -> %s',
         (aura: Element, trigger: Element) => {
             const s = new Simulation()
@@ -24,7 +24,7 @@ describe('minor amping', () => {
         },
     )
 
-    test.each(mainorAmping)(
+    test.each(minorAmping)(
         'double minor amping %s -> %s',
         (aura: Element, trigger: Element) => {
             const s = new Simulation()
@@ -39,7 +39,7 @@ describe('minor amping', () => {
         },
     )
 
-    test.each(mainorAmping)(
+    test.each(minorAmping)(
         'minor amping crit %s -> %s',
         (aura: Element, trigger: Element) => {
             const s = new Simulation()
@@ -57,13 +57,13 @@ describe('minor amping', () => {
         },
     )
 
-    test.each(mainorAmping)(
+    test.each(minorAmping)(
         'deploy minor amping %s -> %s',
         (aura: Element, trigger: Element) => {
             const s = new Simulation()
             const damage = s.run(
                 [
-                    character(multiHit(aura, 10, 3, 19)),
+                    character(multiHit(aura, 10, 3, 19, characterSwitchTime)),
                     character(basicHit(trigger, 10)),
                 ],
                 ['n1', '2', 'n1', 'n1', 'n1', 'n1', 'n1', 'n1'],
@@ -80,7 +80,7 @@ describe('minor amping', () => {
         },
     )
 
-    test.each(mainorAmping)(
+    test.each(minorAmping)(
         'minor amping em %s -> %s',
         (aura: Element, trigger: Element) => {
             const s = new Simulation()

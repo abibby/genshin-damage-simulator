@@ -76,13 +76,14 @@ export function multiHit(
     mv: number,
     count: number,
     interval: number,
+    offset = 0,
 ): Hit[] {
     const hits: Hit[] = []
     for (let i = 0; i < count; i++) {
         hits.push({
             element: element,
             gauge: 1,
-            frame: i * interval,
+            frame: i * interval + offset,
             motionValue: mv,
             stat: 'atk',
         })

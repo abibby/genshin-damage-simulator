@@ -1,6 +1,6 @@
 import { describe, expect, test } from '@jest/globals'
 import { BuffCharacter, Element } from '../src/characters/character'
-import { Simulation } from '../src/simulator/simulator'
+import { characterSwitchTime, Simulation } from '../src/simulator/simulator'
 import { basicHit, character, multiHit } from './util'
 
 describe('buff', () => {
@@ -9,7 +9,7 @@ describe('buff', () => {
         const c1 = character([])
         c1.abilities.get('n1')!.buffs[0] = {
             frame: 0,
-            duration: 60,
+            duration: characterSwitchTime + 60,
             character: BuffCharacter.All,
             statBonuses: {
                 atk: {
@@ -30,7 +30,7 @@ describe('buff', () => {
         const c1 = character([])
         c1.abilities.get('n1')!.buffs[0] = {
             frame: 0,
-            duration: 15,
+            duration: characterSwitchTime + 15,
             character: BuffCharacter.All,
             statBonuses: {
                 atk: {
@@ -44,7 +44,7 @@ describe('buff', () => {
         c2.abilities.get('n1')!.snapshot = true
 
         const damage = s.run([c1, c2], ['n1', '2', 'n1'])
-        expect(damage).toBe(30)
+        expect(damage).toBe(characterSwitchTime)
     })
 
     test('non snapshot', () => {
@@ -52,7 +52,7 @@ describe('buff', () => {
         const c1 = character([])
         c1.abilities.get('n1')!.buffs[0] = {
             frame: 0,
-            duration: 15,
+            duration: characterSwitchTime + 15,
             character: BuffCharacter.All,
             statBonuses: {
                 atk: {

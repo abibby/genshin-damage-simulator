@@ -12,6 +12,8 @@ import {
 import { OutOfStaminaError } from './errors'
 import { TimedMap } from './timed-map'
 
+export const characterSwitchTime = 30
+
 interface DamageInstance {
     type: 'damage'
     element: Element
@@ -224,7 +226,7 @@ export class Simulation {
         // let currentFrame = 0
         for (const step of sequence.concat(['end'])) {
             if (step.match(/^[1-4]$/)) {
-                // this.currentFrame += 30
+                this.currentFrame += 30
                 this.setActiveCharacter(Number(step))
                 continue
             }
