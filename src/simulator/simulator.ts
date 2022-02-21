@@ -1,11 +1,11 @@
 import PriorityQueue from 'priorityqueuejs'
 import {
-    addStatBonuses,
+    addBonuses,
+    Bonus,
     Character,
     Element,
     Hit,
     SkillType,
-    StatBonuses,
     Stats,
     TriggerType,
 } from '../characters/character'
@@ -29,7 +29,7 @@ interface BuffInstance {
     type: 'buff'
     name: string
     character: Character
-    statBonuses: StatBonuses
+    bonuses: Bonus[]
     startFrame: number
     endFrame: number
 }
@@ -172,18 +172,44 @@ export class Simulation {
         frame: number,
         key: keyof Stats,
     ): number {
-        let buffs: StatBonuses = {}
-        for (const buff of this.buffs.atTime(frame)) {
-            buffs = addStatBonuses(buffs, buff.statBonuses)
-        }
+        const buffs = this.buffs
+            .atTime(frame)
+            .flatMap(b => b.bonuses)
+            .filter(b => b.target === key)
 
         const stat = character.stats[key]
 
-        const buff = buffs[key] ?? { percent: 0, flat: 0 }
+        const buff = addBonuses(buffs)
         if (typeof stat === 'number') {
             return stat + buff.flat
         }
         return stat.valueWithBonus(buff)
+    }
+
+    private getFlatDamageBuff(
+        character: Character,
+        frame: number,
+        key: SkillType,
+    ): number {
+        const buffs = this.buffs
+            .atTime(frame)
+            .flatMap(b => b.bonuses)
+            .filter(b => b.target === key)
+
+        const buff = addBonuses(buffs)
+    }
+
+    private getMotionValueBuff(
+        character: Character,
+        frame: number,
+        key: SkillType,
+    ): number {
+        const buffs = this.buffs
+            .atTime(frame)
+            .flatMap(b => b.bonuses)
+            .filter(b => b.target === key)
+
+        const buff = addBonuses(buffs)
     }
 
     private getTriggedDamage(
@@ -268,7 +294,7 @@ export class Simulation {
                         endFrame:
                             this.currentFrame + buff.frame + buff.duration,
                         character: c,
-                        statBonuses: buff.statBonuses,
+                        bonuses: buff.bonuses,
                     })
                 }
 

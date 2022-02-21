@@ -97,35 +97,51 @@ export enum BuffCharacter {
 export interface Bonus {
     flat: number
     percent: number
+    target: keyof Stats | SkillType
+    conditions: BonusCondition
 }
 
-export type StatBonuses = {
-    [P in keyof Stats]?: Bonus
+export interface BonusCondition {
+    skill?: SkillType
+    element?: Element
 }
+
+// export type StatBonuses = {
+//     [P in keyof Stats]?: Bonus
+// }
+
+// export type SkillBonuses = {
+//     [P in SkillType]?: Bonus
+// }
 
 export type Buff = {
     frame: number
     duration: number
     character: BuffCharacter
-    statBonuses: StatBonuses
+    bonuses: Bonus[]
+    // statBonuses: StatBonuses
+    // skillBonuses: SkillBonuses
 }
 
-export function addStatBonuses(...statBonuses: StatBonuses[]): StatBonuses {
-    const bonuses: StatBonuses = {}
-
-    for (const bonus of statBonuses) {
-        for (const key of keys(bonus)) {
-            const value: Bonus = bonus[key] ?? { flat: 0, percent: 0 }
-            if (bonuses[key] !== undefined) {
-                // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-                bonuses[key]!.flat += value.flat
-                // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
-                bonuses[key]!.percent += value.percent
-            } else {
-                bonuses[key] = { ...value }
-            }
+export function addBonuses(bonuses: Bonus[]): Bonus {
+    const first = bonuses[0]
+    if (first === undefined) {
+        return {
+            flat: 0,
+            percent: 0,
+            target: 'atk',
+            conditions: {},
         }
     }
+    const bonus: Bonus = {
+        ...first,
+        flat: 0,
+        percent: 0,
+    }
+    for (const b of bonuses) {
+        bonus.flat += b.flat
+        bonus.percent += b.percent
+    }
 
-    return bonuses
+    return bonus
 }
