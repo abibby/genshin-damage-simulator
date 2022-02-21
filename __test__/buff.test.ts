@@ -94,7 +94,7 @@ describe('buff', () => {
         const c2 = character(basicHit(Element.Pyro, 10))
 
         const damage = s.run([c1, c2], ['n1', '2', 'n1'])
-        expect(damage).toBe(70)
+        expect(damage).toBe(60)
     })
 
     // TODO: add test for conditions, e.g. dont buff noncryo damage on cryo condition

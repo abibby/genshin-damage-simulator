@@ -23,6 +23,7 @@ interface DamageInstance {
     character: Character
     startFrame: number
     snapshotFrame: number | undefined
+    skillType: SkillType | null
 }
 
 interface BuffInstance {
@@ -189,27 +190,37 @@ export class Simulation {
     private getFlatDamageBuff(
         character: Character,
         frame: number,
-        key: SkillType,
+        key: SkillType | null,
     ): number {
+        if (key === null) {
+            return 0
+        }
         const buffs = this.buffs
             .atTime(frame)
             .flatMap(b => b.bonuses)
             .filter(b => b.target === key)
 
         const buff = addBonuses(buffs)
+
+        return buff.flat
     }
 
     private getMotionValueBuff(
         character: Character,
         frame: number,
-        key: SkillType,
+        key: SkillType | null,
     ): number {
+        if (key === null) {
+            return 0
+        }
         const buffs = this.buffs
             .atTime(frame)
             .flatMap(b => b.bonuses)
             .filter(b => b.target === key)
 
         const buff = addBonuses(buffs)
+
+        return buff.percent
     }
 
     private getTriggedDamage(
@@ -235,6 +246,7 @@ export class Simulation {
                         stat: hit.stat,
                         character: trigger.character,
                         snapshotFrame: snapshotFrame,
+                        skillType: type,
                     })
                 }
             }
@@ -321,6 +333,7 @@ export class Simulation {
                         stat: hit.stat,
                         character: c,
                         snapshotFrame: snapshotFrame,
+                        skillType: ability.type,
                     })
                     for (const instance of this.getTriggedDamage(
                         ability.type,
@@ -363,16 +376,26 @@ export class Simulation {
     }
 
     private simulateInstance(instance: DamageInstance): number {
+        const buffFrame = instance.snapshotFrame ?? instance.startFrame
+        const motionValue =
+            instance.motionValue +
+            this.getMotionValueBuff(
+                instance.character,
+                buffFrame,
+                instance.skillType,
+            )
+
         const [damage, gaugeModifier] = reaction(
             this.aura,
             instance.element,
             critDamage(
                 instance.character,
-                (instance.motionValue / 100) *
-                    this.getStat(
+                (motionValue / 100) *
+                    this.getStat(instance.character, buffFrame, instance.stat) +
+                    this.getFlatDamageBuff(
                         instance.character,
-                        instance.snapshotFrame ?? instance.startFrame,
-                        instance.stat,
+                        buffFrame,
+                        instance.skillType,
                     ),
             ),
             instance.character.stats.elementalMastery,
